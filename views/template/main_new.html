@@ -21,8 +21,7 @@
     </div>
     {{??it.user.advice == 'new'}}
     <div class="success-wrap">
-        Welcome to bustabit.com, to start you have 2 free bits, bits
-        <a href="/request">you can request them here</a> or you can just watch the current games... have fun :D
+        Welcome to bustabit.com, to start you <a href="/request">you can request 2 free bits</a> or you can just watch the current games... have fun :D
 
     </div>
     {{??it.user.advice == 'received'}}
@@ -33,10 +32,6 @@
     <div class="success-wrap">
         {{!it.user.advice}}
     </div>
-    {{??it.user && it.user.balance_satoshis < 100 }}
-    {{?it.user.eligible == true}}
-    <div class="success-wrap"><a href="/request">Collect your free bits!</a></div>
-    {{?}}
     {{?}}
 
     {{?}}

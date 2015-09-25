@@ -88,7 +88,7 @@ exports.show = function(req, res, next) {
    loserBoard.get('noop', function(err, losers) {
      if (err)
        return next(new Error('Unable to get leader board: \n' + err));
-     
+
      res.render('loserboard', { user: req.user, losers: losers });
    });
  };
