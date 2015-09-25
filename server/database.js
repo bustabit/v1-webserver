@@ -715,6 +715,29 @@ exports.getLeaderBoard = function(byDb, order, callback) {
     });
 };
 
+exports.getLoserBoard = function(callback) {
+    var sql = m(function() { /*
+     SELECT
+       (SELECT username FROM users WHERE id = plays.user_id) username,
+       (-COALESCE(SUM(plays.bet), 0) + COALESCE(SUM(plays.cash_out), 0) + COALESCE(SUM(plays.bonus), 0)) profit
+     FROM plays
+     JOIN games ON plays.game_id = games.id
+     JOIN users ON plays.user_id = users.id
+     WHERE plays.game_id > 1877638 AND games.ended = true
+     AND games.created < timestamptz '2015-10-01 0:00:00'
+     GROUP BY plays.user_id
+     ORDER BY 2 ASC
+     LIMIT 100
+    */});
+
+    query(sql, function(err, data) {
+        if (err)
+            return callback(err);
+        callback(null, data.rows);
+    });
+
+};
+
 exports.addChatMessage = function(userId, created, message, channelName, isBot, callback) {
     var sql = 'INSERT INTO chat_messages (user_id, created, message, channel, is_bot) values($1, $2, $3, $4, $5)';
     query(sql, [userId, created, message, channelName, isBot], function(err, res) {

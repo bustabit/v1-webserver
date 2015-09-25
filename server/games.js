@@ -1,5 +1,6 @@
  var assert = require('better-assert');
  var async = require('async');
+ var AsyncCache = require ('async-cache');
  var timeago = require('timeago');
  var database = require('./database');
 
@@ -63,6 +64,37 @@ exports.show = function(req, res, next) {
         res.render('leaderboard', { user: user, leaders: leaders, sortBy: byDb, order: order });
      });
  };
+
+
+
+
+ /**
+  * GET
+  * Public API
+  * Shows the loser board
+  **/
+
+ var loserBoard = new AsyncCache({
+   max: 2,
+   maxAge: 1000 * 10, // 10 sec
+   load: function (key, cb) {
+     database.getLoserBoard(cb)
+   }
+ });
+
+ exports.getLoserBoard = function(req, res, next) {
+   var user = req.user;
+
+   loserBoard.get('noop', function(err, losers) {
+     if (err)
+       return next(new Error('Unable to get leader board: \n' + err));
+     
+     res.render('loserboard', { user: req.user, losers: losers });
+   });
+ };
+
+
+
 
 
  /**

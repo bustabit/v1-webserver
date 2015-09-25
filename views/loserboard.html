@@ -1,0 +1,54 @@
+{{##def.page_title = 'Leader Board' #}}
+
+{{##def.content:
+<div class="content row panel radius">
+
+    <div class="row">
+        <div class="small-5 columns"><h5 id="top">Top 100 losers</h5>
+            <a href="https://bitcointalk.org/index.php?topic=1189765.0">Biggest Loser wins a gold trim silver wallet!</a></div>
+        <div class="small-5 columns"><iframe src="https://freesecure.timeanddate.com/countdown/i4v4eu9z/cf12/cm0/cu4/ct0/cs0/ca0/cr0/ss0/cac000/cpc000/pcfff/tcfff/fs100/szw320/szh135/tatTime%20remaining/tac333/tpt%3Ccontest%20over%20since%3E/tpc000/mac000/mpc000/iso2015-10-01T00:00:00" allowTransparency="true" frameborder="0" width="212" height="69"></iframe></div>
+    </div>
+<hr>
+
+
+
+    <hr>
+    <table class="leaders">
+        <thead>
+            <tr>
+                <td>
+                    #
+                </td>
+                <td>
+                    Player
+                </td>
+                <td>
+                    Profit
+                </td>
+            </tr>
+        </thead>
+        <tbody>
+            {{~it.losers :loser:index}}
+                <tr>
+                    <td>
+                        {{= index }}
+                    </td>
+                    <td>
+                        <a href="/user/{{=loser.username}}">{{=loser.username}}</a>
+                    </td>
+                    <td>
+                        {{#def.format: { n: loser.profit, decimals: 2 } }}
+                    </td>
+                    <td>
+                        {{#def.format: { n: loser.profit, decimals: 2 } }}
+                    </td>
+                </tr>
+            {{~}}
+
+        </tbody>
+    </table>
+
+</div>
+#}}
+
+{{#def.include('./template/main_old')}}
