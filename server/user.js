@@ -624,6 +624,102 @@ exports.deposit = function(req, res, next) {
     });
 };
 
+
+ /**
+  * GET
+  * Restricted API
+  * Shows the transfer history
+  **/
+  exports.transfer = function(req, res, next) {
+      var user = req.user;
+      assert(user);
+
+      var success = (req.query.m === 'success') ? 'Transfer has been made' : undefined;
+
+
+      database.getTransfers(user.id, function(err, transfers) {
+          if (err)
+              return next(new Error('Unable to get transfers: ' + err));
+
+          res.render('transfer', { user: user, transfers: transfers, success: success });
+      });
+  };
+  /**
+   * GET
+   * Restricted API
+   * Shows the transfer request page
+   **/
+
+exports.transferRequest = function(req, res) {
+    assert(req.user);
+    res.render('transfer-request', { user: req.user, id: uuid.v4() });
+};
+
+
+ /**
+  * GET
+  * Restricted API
+  * Process a transfer (tip)
+  **/
+
+ exports.handleTransferRequest = function (req,res,next){
+     var user = req.user;
+     assert(user);
+     var uid = req.body['transfer-id'];
+     var amount = lib.removeNullsAndTrim(req.body.amount);
+     var toUserName = lib.removeNullsAndTrim(req.body['to-user']);
+     var password = lib.removeNullsAndTrim(req.body.password);
+     var otp = lib.removeNullsAndTrim(req.body.otp);
+     var r =  /^[1-9]\d*(\.\d{0,2})?$/;
+     if (!r.test(amount))
+         return res.render('transfer-request', { user: user, id: uuid.v4(),  warning: 'Not a valid amount' });
+    amount = Math.round(parseFloat(amount) * 100);
+
+     if (amount < 10000)
+        return res.render('transfer-request', { user: user, id: uuid.v4(),  warning: 'Must transfer at least 100 bits' });
+
+    if (!password)
+        return res.render('transfer-request', { user: user,  id: uuid.v4(), warning: 'Must enter a password'});
+
+    if (user.username.toLowerCase() === toUserName.toLowerCase()) {
+        return res.render('transfer-request', { user: user,  id: uuid.v4(), warning: 'Can\'t send money to yourself'});
+    }
+
+    database.validateUser(user.username, password, otp, function(err) {
+
+        if (err) {
+            if (err === 'WRONG_PASSWORD')
+                return res.render('transfer-request', {
+                    user: user,
+                    id: uuid.v4(),
+                    warning: 'wrong password, try it again...'
+                });
+            if (err === 'INVALID_OTP')
+                return res.render('transfer-request', {user: user, id: uuid.v4(), warning: 'invalid one-time token'});
+            //Should be an user
+            return next(new Error('Unable to validate user handling transfer: ' + err));
+        }
+        // Check destination user
+
+        database.makeTransfer(uid, user.id, toUserName, amount, function (err) {
+            if (err) {
+                if (err === 'NOT_ENOUGH_BALANCE')
+                    return res.render('transfer-request', {user: user, id: uuid.v4(), warning: 'Not enough balance for transfer'});
+                if (err === 'USER_NOT_EXIST')
+                    return res.render('transfer-request', {user: user, id: uuid.v4(), warning: 'Could not find user'});
+                if (err === 'TRANSFER_ALREADY_MADE')
+                    return res.render('transfer-request', {user: user, id: uuid.v4(), warning: 'You already submitted this'});
+
+                console.error('[INTERNAL_ERROR] could not make transfer: ', err);
+                return res.render('transfer-request', {user: user, id: uuid.v4(), warning: 'Could not make transfer'});
+            }
+
+            return res.redirect('/transfer?m=success');
+        });
+    });
+
+ };
+
 /**
  * GET
  * Restricted API
@@ -655,9 +751,9 @@ exports.handleWithdrawRequest = function(req, res, next) {
     var user = req.user;
     assert(user);
 
-    var amount = req.body.amount;
-    var destination = req.body.destination;
-    var withdrawalId = req.body.withdrawal_id;
+    var amount = lib.removeNullsAndTrim(req.body.amount);
+    var destination = lib.removeNullsAndTrim(req.body.destination);
+    var withdrawalId = lib.removeNullsAndTrim(req.body.withdrawal_id);
     var password = lib.removeNullsAndTrim(req.body.password);
     var otp = lib.removeNullsAndTrim(req.body.otp);
 

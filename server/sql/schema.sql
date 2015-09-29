@@ -6,6 +6,7 @@ CREATE EXTENSION plv8;
 
 CREATE TYPE UserClassEnum AS ENUM ('user', 'moderator', 'admin');
 
+
 CREATE TABLE users (
     id bigint NOT NULL,
     created timestamp with time zone DEFAULT now() NOT NULL,
@@ -38,7 +39,18 @@ ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
 
+-- Transfers (Tips)
+CREATE TABLE transfers (
+  id uuid NOT NULL PRIMARY KEY,
+  from_user_id bigint NOT NULL REFERENCES users(id),
+  to_user_id bigint NOT NULL  REFERENCES users(id),
+  amount bigint NOT NULL,
+  created timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT user_transfer_valid_amount CHECK(amount>0)
+);
 
+CREATE INDEX transfer_from_user_id_idx ON transfers USING btree (from_user_id, created);
+CREATE INDEX transfer_to_user_id_idx ON transfers USING btree (to_user_id, created);
 
 -- Blocks
 

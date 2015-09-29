@@ -40,7 +40,7 @@ function query(query, params, callback) {
                 done();
                 if (err) {
                     if (err.code === '40P01') {
-                        console.log('Warning: Retrying deadlocked transaction: ', query, params);
+                        console.error('[INTERNAL] Warning: Retrying deadlocked transaction: ', query, params);
                         return doIt();
                     }
                     return callback(err);
@@ -77,7 +77,7 @@ function getClient(runner, callback) {
                 client.query('ROLLBACK', done);
 
                 if (err.code === '40P01') {
-                    console.log('Warning: Retrying deadlocked transaction..');
+                    console.error('[INTERNAL_ERROR] Warning: Retrying deadlocked transaction..');
                     return doIt();
                 }
 
@@ -604,6 +604,53 @@ exports.getPublicStats = function(username, callback) {
     );
 };
 
+exports.makeTransfer = function(uid, fromUserId, toUsername, satoshis, callback){
+    assert(typeof fromUserId === 'number');
+    assert(typeof toUsername === 'string');
+    assert(typeof satoshis === 'number');
+
+    // Update balances
+    getClient(function(client, callback) {
+        async.waterfall([
+            function(callback) {
+                client.query("UPDATE users SET balance_satoshis = balance_satoshis - $1 WHERE id = $2",
+                  [satoshis, fromUserId], callback)
+            },
+            function(prevData, callback) {
+                client.query(
+                  "UPDATE users SET balance_satoshis = balance_satoshis + $1 WHERE lower(username) = lower($2) RETURNING id",
+                  [satoshis, toUsername], function(err, data) {
+                      if (err)
+                          return callback(err);
+                      if (data.rowCount === 0)
+                        return callback('USER_NOT_EXIST');
+                      var toUserId = data.rows[0].id;
+                      assert(Number.isInteger(toUserId));
+                      callback(null, toUserId);
+                  });
+            },
+            function (toUserId, callback) {
+                client.query(
+                  "INSERT INTO transfers (id, from_user_id, to_user_id, amount) values($1,$2,$3,$4) ",
+                  [uid, fromUserId, toUserId, satoshis], callback);
+            }
+        ], function(err) {
+            if (err) {
+                if (err.code === '23514') {// constraint violation
+                    return callback('NOT_ENOUGH_BALANCE');
+                }
+                if (err.code === '23505') { // dupe key
+                    return callback('TRANSFER_ALREADY_MADE');
+                }
+
+                return callback(err);
+            }
+            callback();
+        });
+    }, callback);
+
+};
+
 exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
     assert(typeof userId === 'number');
     assert(typeof satoshis === 'number');
@@ -652,6 +699,32 @@ exports.getWithdrawals = function(userId, callback) {
            };
         });
         callback(null, data);
+    });
+};
+
+exports.getTransfers = function (userId, callback){
+    assert(userId);
+    assert(callback);
+
+    var sql = m(function() {/*
+        SELECT
+           transfers.id,
+           transfers.amount,
+           (SELECT username FROM users WHERE id = transfers.from_user_id) AS from_username,
+           (SELECT username FROM users WHERE id = transfers.to_user_id) AS to_username,
+           transfers.created
+        FROM transfers
+        WHERE from_user_id = $1
+           OR   to_user_id = $1
+        ORDER by transfers.created DESC
+        LIMIT 250
+    */});
+
+    query(sql, [userId], function(err, data) {
+        if (err)
+            return callback(err);
+
+        callback(null, data.rows);
     });
 };
 
