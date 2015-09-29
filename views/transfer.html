@@ -1,0 +1,81 @@
+{{##def.page_title = 'Transfer' #}}
+
+{{##def.content:
+<script type="text/javascript">
+    function logout() {
+        if (document.getElementById('logout') ) {
+            if (confirm("Are you sure you want to log out?")) {
+                document.getElementById("logout").submit();
+            }
+        }
+    }
+</script>
+<form action="/logout" method="post" id='logout'></form>
+<div class="content row panel radius">
+    <div class="settings">
+        <div class="small-2 columns">
+            <ul class="menu">
+                <li>
+                    <a href="/account">Account</a>
+                </li>
+                <li>
+                    <a href="/security">Security</a>
+                </li>
+                <li>
+                    <a href="/deposit">Deposit</a>
+                </li>
+                <li>
+                    <a href="/withdraw">Withdraw</a>
+                </li>
+                <li class="active">
+                  Transfer
+                </li>
+                <li>
+                    <a href="/support">Support</a>
+                </li>
+                <li>
+                    <a onclick="logout();">
+                        Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="small-10 columns sets-content">
+            <a class="border-button right green" href="/transfer/request">Transfer Bits</a>
+            <h5 >Transfer History</h5>
+            {{?it.transfers.length > 0}}
+                <table>
+                    <thead>
+                        <tr><td>From</td><td>To</td><td>Amount</td><td>Time</td></tr>
+                    </thead>
+                    <tbody>
+                    {{~it.transfers :transfer:index}}
+                        <tr>
+                            <td>{{= transfer.from_username }}</td>
+                            <td>{{= transfer.to_username }}</td>
+                            <td>{{? transfer.from_username == it.user.username}}
+                                  -
+                                {{??}}
+                                   +
+                                {{?}}
+                                {{#def.format: {n: transfer.amount, decimals: 2 } }} bits</td>
+                            <td>
+                                {{=transfer.created}}
+                            </td>
+                        </tr>
+                    {{~}}
+                    </tbody>
+                </table>
+
+            {{??}}
+            <br>
+            <br>
+            <br>
+            <p>You have made nor received any transfers.</p>
+            {{?}}
+        </div>
+    </div>
+</div>
+
+#}}
+{{#def.include('./template/main_old')}}
