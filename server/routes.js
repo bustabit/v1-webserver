@@ -176,6 +176,7 @@ module.exports = function(app) {
     app.get('/deposit', restrict, user.deposit);
     app.get('/withdraw', restrict, user.withdraw);
     app.get('/transfer', restrict, user.transfer);
+    app.get('/transfer.json', restrict, user.transferJson);
     app.get('/withdraw/request', restrict, user.withdrawRequest);
     app.get('/transfer/request', restrict, user.transferRequest);
     app.get('/support', restrict, user.contact);

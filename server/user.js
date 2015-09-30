@@ -630,20 +630,34 @@ exports.deposit = function(req, res, next) {
   * Restricted API
   * Shows the transfer history
   **/
-  exports.transfer = function(req, res, next) {
-      var user = req.user;
-      assert(user);
+exports.transfer = function(req, res, next) {
+  var user = req.user;
+  assert(user);
 
-      var success = (req.query.m === 'success') ? 'Transfer has been made' : undefined;
+  var success = (req.query.m === 'success') ? 'Transfer has been made' : undefined;
 
 
-      database.getTransfers(user.id, function(err, transfers) {
-          if (err)
-              return next(new Error('Unable to get transfers: ' + err));
+  database.getTransfers(user.id, function(err, transfers) {
+      if (err)
+          return next(new Error('Unable to get transfers: ' + err));
 
-          res.render('transfer', { user: user, transfers: transfers, success: success });
-      });
-  };
+      res.render('transfer', { user: user, transfers: transfers, success: success });
+  });
+};
+
+exports.transferJson = function(req, res, next) {
+    var user = req.user;
+    assert(user);
+
+
+    database.getTransfers(user.id, function(err, transfers) {
+        if (err)
+            return next(new Error('Unable to get transfers: ' + err));
+
+        res.json(transfers);
+    });
+};
+
   /**
    * GET
    * Restricted API
