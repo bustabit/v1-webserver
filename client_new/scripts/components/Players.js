@@ -55,12 +55,24 @@ define([
             });
         },
 
+        _animRequest: null,
         _onChange: function() {
-            if(this.isMounted())
-                this.setState(getState());
+            // Already scheduled an update.
+            if (this._animRequest) return;
+
+            // Schedule a new update of this component.
+            var self = this;
+            this._animRequest =
+            window.requestAnimationFrame(function() {
+                if(self.isMounted())
+                    self.forceUpdate();
+            });
         },
 
         render: function() {
+            // Reset the animation request id when rendering.
+            this._animRequest = null;
+
             var self = this;
 
             var usersWonCashed = [];
