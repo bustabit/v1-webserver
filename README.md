@@ -1,86 +1,78 @@
-INSTALLATION
-============
+**This installation guide is only suitable to set up bustabit for development and testing. Additional steps are necessary for a production-ready bustabit.**
 
-Debian/Ubuntu
--------------
+## 1. Install Dependencies
 
-These are instructions for running bustabit locally on a Debian / Ubuntu machine.
+If `bustabit-depositor` is used, `bitcoind` must be installed and running.
 
-### Distribution packages
+#### Debian
+    sudo apt-get install git postgresql postgresql-9.4-plv8 nodejs-legacy npm
 
-You will need to install the Postgres DBMS and node.js. The `nodejs-legacy`
-package installs `nodejs` but will additionally create a symlink from
-`/usr/bin/node` to `/usr/bin/nodejs`.
+#### Mac OS
+Download and install [Postgres.app](http://postgresapp.com) and [set up the command line tools](http://postgresapp.com/documentation/cli-tools.html). The remaining dependencies can be installed using Homebrew:
 
-    sudo apt-get install git npm postgresql nodejs-legacy
+    brew install git node
 
-### Getting the sources
-
+## 2. Clone Source
     git clone https://github.com/moneypot/bustabit-webserver.git
-    cd bustabit-webserver
+    git clone https://github.com/moneypot/bustabit-gameserver.git
+    git clone https://github.com/moneypot/bustabit-depositor.git
 
-### Create a database user and setup the tables
+`bustabit-depositor` is only needed if payments are to be accepted and may be omitted otherwise.
 
-Create a user. It will prompt you for a password.
+Run `npm install` once from within each project directory to install all required npm modules.
 
+## 3. Initialise Database
+
+#### Debian
     sudo -u postgres createuser -P bustabit
-
-Create the database and setup the tables. The second command will prompt you
-for the password again.
-
     sudo -u postgres createdb -O bustabit bustabitdb
-    psql -W -U bustabit -d bustabitdb -h localhost -f server/schema.sql
+    sudo -u postgres createlang plv8 bustabitdb
+    psql -W -U bustabit -d bustabitdb -h localhost -f bustabit-webserver/server/sql/schema.sql
 
-Mac OS X
---------
-
-These are instructions for running bustabit locally on a Mac using homebrew.
-
-### Install homebrew packages
-
-    brew install git node npm postgresql
-
-### Getting the sources
-
-    git clone https://github.com/moneypot/bustabit-webserver.git
-    cd bustabit-webserver
-
-### Create a database user and setup the tables
-
-Create a user. It will prompt you for a password.
-
+#### Mac OS
     createuser -P bustabit
-
-Create the database and setup the tables. The second command will prompt you
-for the password again.
-
     createdb -O bustabit bustabitdb
-    psql -W -U bustabit -d bustabitdb -h localhost -f server/sql/schema.sql
+    createlang plv8 bustabitdb
+    psql -W -U bustabit -d bustabitdb -h localhost -f bustabit-webserver/server/sql/schema.sql
 
+## 4. Configure and Start Components
 
-Configuration
-=============
+All instructions should be followed from within the respective project directories.
 
-### Installing node.js dependencies locally.
+#### bustabit-webserver
+Set the database URI, replacing `<PASSWORD>` with the one you chose in step 3.
 
-This will download and install all dependencies in the `node_modules` subdirectory.
+    export DATABASE_URL=postgres://bustabit:<PASSWORD>@localhost/bustabitdb
 
-    npm install
+Set an extended public key as defined by BIP 32 (starts with `xpub`). All deposit addresses will be derived from this key:
 
-### Database
+    export BIP32_DERIVED_KEY=xpub…
 
-Export the database link as an environment variable
+By default, bustabit listens for HTTP requests on port 3841. Optionally, a different port may be specified, for example:
 
-    export DATABASE_URL=postgres://bustabit:<YOURPASSWORD>@localhost/bustabitdb
+    export PORT=8000
 
-### BIP32 Key
+Finally, start the server:
 
-You will need to create a BIP32 key pair. You can do at your own risk online at [bip32.org](http://bip32.org/). Export the public key as an environment variable
+    npm start
 
-    export BIP32_DERIVED_KEY=xpub6AH.....
+#### bustabit-gameserver
 
+Generate a hashchain (see [this forum post](https://bitcointalk.org/index.php?topic=922898.0) for more information on bustabit's probably fair scheme):
 
-Running
-=======
+    node populate_hashes.js
 
-You can run the server by using `npm start`. By default it will listen on port `3841`.
+Set the same database URI as in the previous step and start the server:
+
+    export DATABASE_URL=postgres://bustabit:<PASSWORD>@localhost/bustabitdb
+    npm start
+
+#### bustabit-depositor
+Edit the variables in the `env` file to suit your needs:
+
+- `BIP32_DERIVED_KEY` An extended public key. This should be the same key used in the `bustabit-webserver` section above.
+- `GENERATE_ADDRESSES` Number of addresses to generate and watch. This number should be greater than the number of your users.
+- `BITCOIND_HOST` The address at which your `bitcoind` instance is listening at
+- `BITCOIND_USER` and `BITCOIND_PASS` The RPC credentials of your `bitcoind` instance. These should be identical to the credentials defined in `bitcoind`'s configuration file.
+
+Finally, start the depositor in the background with `npm start` or in the foreground using `npm run start-dev`.
