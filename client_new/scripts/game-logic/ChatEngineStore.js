@@ -4,14 +4,16 @@ define([
     'game-logic/clib',
     'game-logic/ChannelManager',
     'constants/AppConstants',
-    'dispatcher/AppDispatcher'
+    'dispatcher/AppDispatcher',
+    'stores/GameSettingsStore'
 ], function(
     io,
     Events,
     Clib,
     ChannelManager,
     AppConstants,
-    AppDispatcher
+    AppDispatcher,
+    GameSettingsStore
 ) {
 
     var CHANGE_EVENT = 'change';
@@ -70,7 +72,8 @@ define([
 
                 //If @username in message ring
                 var r = new RegExp('@' + self.username + '(?:$|[^a-z0-9_\-])', 'i');
-                if (data.type === 'say' && data.username !== self.username && r.test(data.message))
+                var ignored = GameSettingsStore.getIgnoredClientList().hasOwnProperty(data.username.toLowerCase())
+                if (!ignored && data.type === 'say' && data.username !== self.username && r.test(data.message))
                     new Audio('/sounds/gong.mp3').play();
 
                 self.trigger('msg', data);
