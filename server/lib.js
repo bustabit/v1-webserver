@@ -2,6 +2,7 @@ var assert = require('better-assert');
 var bitcoinjs = require('bitcoinjs-lib');
 var crypto = require('crypto');
 var config = require('../config/config');
+var zxcvbn = require('zxcvbn');
 
 var encKey = config.ENC_KEY;
 
@@ -46,6 +47,7 @@ exports.isInvalidPassword = function(password) {
     if (password.length === 0) return 'NOT_PROVIDED';
     if (password.length < 7) return 'TOO_SHORT';
     if (password.length > 200) return 'TOO_LONG';
+    if (zxcvbn(password).score < 2) return 'TOO_INSECURE';
     return false;
 };
 

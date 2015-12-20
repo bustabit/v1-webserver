@@ -12,6 +12,7 @@ var qr = require('qr-image');
 var uuid = require('uuid');
 var _ = require('lodash');
 var config = require('../config/config');
+var zxcvbn = require('zxcvbn');
 
 var sessionOptions = {
     httpOnly: true,
@@ -111,6 +112,10 @@ exports.login = function(req, res, next) {
                 sessionOptions.expires = expires;
 
             res.cookie('id', sessionId, sessionOptions);
+
+            if (zxcvbn(password).score < 2)
+                return res.redirect('/weak-password');
+
             res.redirect('/');
         });
     });

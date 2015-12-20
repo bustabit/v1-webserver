@@ -38,7 +38,8 @@
     "socket.io-cookie": "0.0.1",
     "speakeasy": "1.0.x",
     "timeago": "^0.1.0",
-    "uuid": "~1.4.1"
+    "uuid": "~1.4.1",
+    "zxcvbn": "^4.2.0"
   },
   "devDependencies": {
     "almond": "^0.3.1",
