@@ -7,6 +7,7 @@ var async    =  require('async');
 
 var db       =  require('./database');
 var lib      =  require('./lib');
+var ips      =  require('./ips');
 
 /** How to use the chat on the client?
  *
@@ -315,6 +316,25 @@ Chat.prototype.doChatCommand = function(user, cmdMatch, channelName, socket, cal
     var rest = cmdMatch[2];
 
     switch (cmd) {
+        case 'ip':
+          console.log('...ip');
+            ips.vpnIps.get(socket.ip, function(err, isVpn) {
+                if (err)
+                    console.error('[INTERNAL ERROR] got weird async cache error: ', err);
+
+                callback(null);
+                self.sendMessageToUser(socket, {
+                    date:      new Date(),
+                    type:      'info',
+                    username:  user.username,
+                    role:      user.userclass,
+                    message:   'Your ip: ' + socket.ip + ' and is vpn ' + isVpn,
+                    bot:       false,
+                    channelName: channelName
+                });
+
+            });
+            return;
         case 'shutdown':
             return callback('DEPRECATED_FEATURE');
         case 'mute':

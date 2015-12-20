@@ -172,12 +172,20 @@ app.use(errorHandler);
 
 /**  Server **/
 var server = http.createServer(app);
-var io = socketIO(server); //Socket io must be after the lat app.use
+var io = socketIO(server); //Socket io must be after the last app.use
 io.use(ioCookieParser);
 
 /** Socket io login middleware **/
 io.use(function(socket, next) {
     debug('incoming socket connection');
+
+    var ip = '127.0.0.1';
+    var val = socket.request.headers['x-forwarded-for'];
+    if (val) {
+        var tmp = val.split(/\s*,\s*/)[0];
+        if (tmp)
+            ip = tmp;
+    }
 
     var sessionId = (socket.request.headers.cookie)? socket.request.headers.cookie.id : null;
 
@@ -204,6 +212,7 @@ io.use(function(socket, next) {
         }
 
         //Save the user info in the socket connection object
+        socket.ip = ip;
         socket.user = user;
         socket.admin = user.userclass === 'admin';
         socket.moderator = user.userclass === 'admin' || user.userclass === 'moderator';

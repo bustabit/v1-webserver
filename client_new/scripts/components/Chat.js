@@ -253,9 +253,10 @@ define([
                         chatInputPlaceholder = 'Type here...';
                         chatInputOnKeyDown = this._sendMessage;
 
-                    //If user is not logged is just an expectator
+                    //If user is not logged
                     } else {
-                        chatInputPlaceholder = 'Log in to chat...';
+                        chatInputPlaceholder = 'Login to chat...';
+                        chatInputDisabled = true;
                     }
 
                     break;
