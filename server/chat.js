@@ -460,7 +460,7 @@ Chat.prototype.say = function(socket, user, message, channelName, isBot, callbac
 
     // new users on vpn aren't allowed
 
-    if (user.games_played < 120) {
+    if (user.games_played < 120 && user.username !== 'Shiba' && user.username !== 'DexonBot') {
         ips.vpnIps.get(socket.ip, function (err, isVpn) {
             if (isVpn) {
                 self.sendMessageToUser(socket, {
