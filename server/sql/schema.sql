@@ -217,6 +217,7 @@ CREATE VIEW users_view AS
     u.password,
     u.mfa_secret,
     u.balance_satoshis,
+    u.games_played,
     ( SELECT max(giveaways.created) AS max
            FROM giveaways
           WHERE (giveaways.user_id = u.id)) AS last_giveaway,
