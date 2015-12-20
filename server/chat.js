@@ -317,23 +317,26 @@ Chat.prototype.doChatCommand = function(user, cmdMatch, channelName, socket, cal
 
     switch (cmd) {
         case 'ip':
-          console.log('...ip');
-            ips.vpnIps.get(socket.ip, function(err, isVpn) {
-                if (err)
-                    console.error('[INTERNAL ERROR] got weird async cache error: ', err);
+            if (socket.moderator) {
+                ips.vpnIps.get(socket.ip, function (err, isVpn) {
+                    if (err)
+                        console.error('[INTERNAL ERROR] got weird async cache error: ', err);
 
-                callback(null);
-                self.sendMessageToUser(socket, {
-                    date:      new Date(),
-                    type:      'info',
-                    username:  user.username,
-                    role:      user.userclass,
-                    message:   'Your ip: ' + socket.ip + ' and is vpn ' + isVpn,
-                    bot:       false,
-                    channelName: channelName
+                    callback(null);
+                    self.sendMessageToUser(socket, {
+                        date: new Date(),
+                        type: 'info',
+                        username: user.username,
+                        role: user.userclass,
+                        message: 'Your ip: ' + socket.ip + ' and is vpn ' + isVpn,
+                        bot: false,
+                        channelName: channelName
+                    });
+
                 });
-
-            });
+            } else {
+                return callback('NOT_A_MODERATOR');
+            }
             return;
         case 'shutdown':
             return callback('DEPRECATED_FEATURE');
@@ -425,6 +428,7 @@ Chat.prototype.say = function(socket, user, message, channelName, isBot, callbac
         channelName: channelName
     };
 
+
     //Check if the user is muted
     if (lib.hasOwnProperty(self.muted, user.username)) {
         var muted = self.muted[user.username];
@@ -449,8 +453,31 @@ Chat.prototype.say = function(socket, user, message, channelName, isBot, callbac
                 bot:       false,
                 channelName: channelName
             });
+            callback();
             return;
         }
+    }
+
+    // new users on vpn aren't allowed
+
+    if (user.games_played < 120) {
+        ips.vpnIps.get(socket.ip, function (err, isVpn) {
+            if (isVpn) {
+                self.sendMessageToUser(socket, {
+                    date: new Date(),
+                    type: 'info',
+                    username: user.username,
+                    role: user.userclass,
+                    message: 'In order to prevent spam, you will need to play at least 120 games to chat (and then refresh)',
+                    bot: false,
+                    channelName: channelName
+                });
+            } else {
+                self.sendMessageToChannel(channelName, msg, user.id);
+            }
+            callback(null);
+        });
+        return;
     }
 
     //Send the message
