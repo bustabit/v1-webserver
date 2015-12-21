@@ -408,7 +408,7 @@ exports.editEmail = function(req, res, next) {
     }
 
     notValid = lib.isInvalidPassword(password);
-    if (notValid) return res.render('/security?err=password not valid because: ' + notValid);
+    if (notValid) return res.redirect('/security?err=password not valid because: ' + notValid);
 
     database.validateUser(user.username, password, otp, function(err, userId) {
         if (err) {
