@@ -94,8 +94,10 @@ exports.login = function(req, res, next) {
 
             if (err === 'NO_USER')
                 return res.render('login',{ warning: 'Username does not exist' });
-            if (err === 'WRONG_PASSWORD')
-                return res.render('login', { warning: 'Invalid password' });
+            if (err === 'WRONG_PASSWORD') {
+                console.log('Wrong password for: ', username, ' was ', password, ' and ua: ', userAgent, ' and ip ', ipAddress);
+                return res.render('login', {warning: 'Invalid password'});
+            }
             if (err === 'INVALID_OTP') {
                 var warning = otp ? 'Invalid one-time password' : undefined;
                 return res.render('login-mfa', { username: username, password: password, warning: warning });
