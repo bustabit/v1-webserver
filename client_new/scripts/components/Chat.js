@@ -4,7 +4,7 @@ define([
     'autolinker',
     'actions/ChatActions',
     'stores/GameSettingsStore',
-    'game-logic/ChatEngineStore',
+    'stores/ChatStore',
     'components/ChatChannelSelector'
 ], function(
     React,
@@ -12,7 +12,7 @@ define([
     Autolinker,
     ChatActions,
     GameSettingsStore,
-    ChatEngineStore,
+    ChatStore,
     ChatChannelSelectorClass
 ){
     // Overrides Autolinker.js' @username handler to instead link to
@@ -48,11 +48,11 @@ define([
     /* Constants */
     var SCROLL_OFFSET = 120;
 
-    function getState(evName){
-        var state = {};
-        state.ignoredClientList = GameSettingsStore.getIgnoredClientList();
-        state.evName = evName;
-        return state;
+    function getState() {
+      var state = ChatStore.getState().toObject();
+      state.ignoredClientList = GameSettingsStore.getIgnoredClientList();
+      state.history = state.channels.getIn([state.currentChannel, 'history']).toArray();
+      return state;
     }
 
     return React.createClass({
@@ -68,7 +68,7 @@ define([
         },
 
         componentDidMount: function() {
-            ChatEngineStore.on('all', this._onChange); //Use all events
+            ChatStore.addChangeListener(this._onChange); //Use all events
             GameSettingsStore.addChangeListener(this._onChange); //Not using all events but the store does not emits a lot
 
             //If messages are rendered scroll down to the bottom
@@ -79,7 +79,7 @@ define([
         },
 
         componentWillUnmount: function() {
-            ChatEngineStore.off('all', this._onChange);
+            ChatStore.removeChangeListener(this._onChange);
             GameSettingsStore.removeChangeListener(this._onChange);
         },
 
@@ -87,18 +87,18 @@ define([
         componentDidUpdate: function(prevProps, prevState) {
 
             //If the chat is not connected do nothing
-            if(ChatEngineStore.connectionState !== 'JOINED')
+            if (this.state.connectionState !== 'JOINED')
                 return;
 
             //On join or channel change scroll to the bottom
-            if(this.state.evName === 'joined' || this.state.evName === 'channel-changed') {
+            if (this.state.lastEvent === 'JOINED' || this.state.lastEvent === 'CHANGED_CHANNEL') {
                 var msgsNode = this.refs.messages.getDOMNode();
                 msgsNode.scrollTop = msgsNode.scrollHeight;
 
             //If there is a new message scroll to the bottom if is near to it
-            } else if(ChatEngineStore.history.length != this.listLength){
+            } else if (this.state.history.length != this.listLength) {
 
-                this.listLength = ChatEngineStore.history.length;
+                this.listLength = this.state.history.length;
 
                 //If messages are rendered scroll down
                 if(this.refs.messages) {
@@ -111,9 +111,9 @@ define([
             }
         },
 
-        _onChange: function(evName) {
-            if(this.isMounted())
-                this.setState(getState(evName));
+        _onChange: function() {
+            if (this.isMounted())
+                this.setState(getState());
         },
 
         _sendMessage: function(e) {
@@ -151,7 +151,7 @@ define([
             switch(cmd) {
                 case 'ignore':
 
-                    if(ChatEngineStore.username === rest) {
+                    if (this.state.username === rest) {
                         ChatActions.showClientMessage('Cant ignore yourself');
 
                     } else if(Clib.isInvalidUsername(rest)) {
@@ -206,6 +206,7 @@ define([
 
         render: function() {
             var self = this;
+            var state = this.state;
 
             //Messages div
             var chatMessagesContainer;
@@ -217,7 +218,7 @@ define([
             var chatInputDisabled = false;
             var chatInputClass = 'chat-input';
 
-            switch(ChatEngineStore.connectionState) {
+            switch (state.connectionState) {
 
                 //Render loading spinner on chat container and render 'connecting' on the chat input
                 case 'CONNECTING':
@@ -249,7 +250,7 @@ define([
                     chatMessagesContainer = renderCurrentChannelMessages();
 
                     //If user is logged
-                    if(ChatEngineStore.username) {
+                    if (state.username) {
                         chatInputPlaceholder = 'Type here...';
                         chatInputOnKeyDown = this._sendMessage;
 
@@ -278,10 +279,10 @@ define([
             function renderCurrentChannelMessages() {
                 //Render the messages of the current channel
                 var messages = [];
-                for(var i = ChatEngineStore.history.length-1; i >= 0; i--)
-                    messages.push(self._renderMessage(ChatEngineStore.history[i], i));
+                for (var i = self.state.history.length-1; i >= 0; i--)
+                    messages.push(self._renderMessage(self.state.history[i], i));
 
-                 return D.ul({ className: 'messages', ref: 'messages' },
+                return D.ul({ className: 'messages', ref: 'messages' },
                     messages
                 );
             }
@@ -302,16 +303,31 @@ define([
              *
              * Show them always except when the engine is connecting because it does not have history in that moment
              */
-            var channelTabs = (ChatEngineStore.connectionState !== 'CONNECTING')? ChatEngineStore.mapChannels(function(channelObject, index, keys) {
-                return D.div({ className: 'tab', key: index, onClick: channelObject.currentChannel? (channelObject.closable? self._closeChannel : null) : self._selectChannel(channelObject.name) },
-                    channelObject.closable? D.i({ className: 'fa fa-times close-channel' }) : null,
-                    channelObject.currentChannel? D.div({ className: 'selected-border' }) : null,
-                    channelObject.unreadCount? D.span({ className: 'unread-counter' }, channelObject.unreadCount) : null,
+            var channelTabs = [];
+            if (state.connectionState !== 'CONNECTING') {
+              state.channels.forEach(function(channelObject, channelName) {
+                channelObject = channelObject.toObject();
+                var isCurrentChannel = state.currentChannel === channelName;
+                var isClosable = isCurrentChannel &&
+                                 channelName != 'english' &&
+                                 channelName != 'moderators';
+                var hasUnread = channelObject.unreadCount != 0;
+
+                var onClickHandler =
+                      isClosable? self._closeChannel :
+                      isCurrentChannel? null :
+                      self._selectChannel(channelName);
+
+                channelTabs.push(D.div({ className: 'tab', key: channelName, onClick: onClickHandler },
+                    isClosable? D.i({ className: 'fa fa-times close-channel' }) : null,
+                    isCurrentChannel? D.div({ className: 'selected-border' }) : null,
+                    hasUnread? D.span({ className: 'unread-counter' }, channelObject.unreadCount) : null,
                     D.img({
-                        src: 'img/flags/' + channelObject.name + '.png'
+                        src: 'img/flags/' + channelName + '.png'
                     })
-                );
-            }) : null;
+                ));
+              });
+            }
 
             return D.div({ id: 'chat' },
 
@@ -327,9 +343,9 @@ define([
                     chatInput,
                     ChatChannelSelector({
                         selectChannel: this._selectChannel,
-                        selectedChannel: ChatEngineStore.currentChannel,
+                        selectedChannel: state.currentChannel,
                         isMobileOrSmall: this.props.isMobileOrSmall,
-                        moderator: ChatEngineStore.moderator
+                        moderator: state.isModerator
                     })
                 ),
                 D.div({ className: 'spinner-pre-loader' }) //Pre load the image
@@ -350,19 +366,19 @@ define([
                 if(message.bot || /^!/.test(message.message)) {
 
                     //If we are ignoring bots and the message is from a bot do not render the message
-                    if (ChatEngineStore.botsDisplayMode === 'none')
+                    if (this.state.botsDisplayMode === 'none')
                         return;
 
                     pri += ' msg-bot';
 
-                    if(ChatEngineStore.botsDisplayMode === 'greyed')
+                    if (this.state.botsDisplayMode === 'greyed')
                         pri += ' bot-greyed';
                 }
 
                 if (message.role === 'admin')
                     pri += ' msg-admin-message';
 
-                var username = ChatEngineStore.username;
+                var username = this.state.username;
 
                 var r = new RegExp('@' + username + '(?:$|[^a-z0-9_\-])', 'i');
                 if (username && message.username != username && r.test(message.message)) {
