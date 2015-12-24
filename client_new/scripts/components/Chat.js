@@ -280,7 +280,7 @@ define([
                 //Render the messages of the current channel
                 var messages = [];
                 for (var i = self.state.history.length-1; i >= 0; i--)
-                    messages.push(self._renderMessage(self.state.history[i], i));
+                    messages.push(self._renderMessage(self.state.history[i]));
 
                 return D.ul({ className: 'messages', ref: 'messages' },
                     messages
@@ -352,7 +352,7 @@ define([
             );
         },
 
-        _renderMessage: function(message, index) {
+        _renderMessage: function(message) {
 
         var pri = 'msg-chat-message';
         switch(message.type) {
@@ -360,14 +360,14 @@ define([
 
                 //If the user is in the ignored client list do not render the message
                 if (this.state.ignoredClientList.hasOwnProperty(message.username.toLowerCase()))
-                    return;
+                    return null;
 
                 //Messages starting with '!' are considered as bot except those ones for me
                 if(message.bot || /^!/.test(message.message)) {
 
                     //If we are ignoring bots and the message is from a bot do not render the message
                     if (this.state.botsDisplayMode === 'none')
-                        return;
+                        return null;
 
                     pri += ' msg-bot';
 
@@ -388,7 +388,7 @@ define([
                 var msgDate = new Date(message.date);
                 var timeString = msgDate.getHours() + ':' + ((msgDate.getMinutes() < 10 )? ('0' + msgDate.getMinutes()) : msgDate.getMinutes()) + ' ';
 
-                return D.li({ className: pri , key: 'msg' + index },
+                return D.li({ className: pri, key: message.mid },
                     D.span({
                             className: 'time-stamp'
                         },
@@ -413,7 +413,7 @@ define([
                 );
             case 'mute':
                 pri = 'msg-mute-message';
-                return D.li({ className: pri , key: 'msg' + index },
+                return D.li({ className: pri, key: message.mid },
                     D.a({ href: '/user/' + message.moderator,
                             target: '_blank'
                         },
@@ -426,7 +426,7 @@ define([
                     ' for ' + message.timespec);
             case 'unmute':
                 pri = 'msg-mute-message';
-                return D.li({ className: pri , key: 'msg' + index },
+                return D.li({ className: pri, key: message.mid },
                     D.a({ href: '/user/' + message.moderator,
                             target: '_blank'
                         },
@@ -441,7 +441,7 @@ define([
             case 'info':
             case 'client_message':
                 pri = 'msg-info-message';
-                return D.li({ className: pri, key: 'msg' + index },
+                return D.li({ className: pri, key: message.mid },
                     D.span(null, ' *** ' + message.message));
                 break;
             default:

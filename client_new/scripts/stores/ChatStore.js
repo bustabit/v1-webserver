@@ -32,6 +32,16 @@ define([
     });
   }
 
+  /**
+   * Generates a fresh id and increments the counter.
+   * @param {object} state - A mutable state object.
+   */
+  function freshMessageId(state) {
+    var mid = state.get('nextMessageId');
+    state.set('nextMessageId', mid+1);
+    return mid;
+  }
+
   var _state = Immutable.Map({
     /** Get the list from localStorage */
     openedChannels: getLocalStorageChannels(),
@@ -63,7 +73,6 @@ define([
     /** Flag true if the user is a moderator or an admin **/
     isModerator: null,
 
-    lastEvent: null
     /**
      * Last event that affected this store. One of:
      *  <connection state>
@@ -73,6 +82,14 @@ define([
      *  NEW_MSG_HIDDEN
      *  NEW_MSG_CLIENT
      */
+    lastEvent: null,
+
+    /**
+     * Next unassigned message id. This is used to give every message a unique
+     * id. It's not important that this is backed by ids in any databse, ids
+     * just have to be unique and constant.
+     */
+    nextMessageId: 0
   });
 
   /** Validate currentChannel **/
@@ -195,6 +212,9 @@ define([
         return callback('CHANNEL_DOES_NOT_EXIST');
 
       _state = _state.withMutations(function(state) {
+        // Assign a uniqe message id.
+        message.mid = freshMessageId(state);
+
         // Insert the message and trim the history if it's too long.
         state.updateIn(['channels', channelName, 'history'], function(h) {
           return Immutable.Seq([message]).concat(h).take(AppConstants.Chat.MAX_LENGTH);
@@ -266,6 +286,9 @@ define([
           return channels.withMutations(function(channels) {
             for (var channelName in newChannels) {
               var channelHistory = newChannels[channelName];
+
+              for (var i in channelHistory)
+                channelHistory[i].mid = freshMessageId(state);
 
               if (channels.has(channelName)) {
                 // If the channel is already open, then simply overwrite the history.
