@@ -55,6 +55,123 @@ define([
       return state;
     }
 
+    var ChatMessageClass = React.createClass({
+
+      displayName: 'ChatMessage',
+
+      propTypes: {
+        message: React.PropTypes.object.isRequired,
+        username: React.PropTypes.string.isRequired,
+        ignoredClientList: React.PropTypes.object.isRequired,
+        botsDisplayMode: React.PropTypes.string.isRequired
+      },
+
+      render: function() {
+        var message = this.props.message;
+        var username = this.props.username;
+
+        console.assert(message.hasOwnProperty('mid'));
+        console.assert(typeof message.mid === 'number');
+
+        var pri = 'msg-chat-message';
+        switch(message.type) {
+        case 'say':
+
+          //If the user is in the ignored client list do not render the message
+          if (this.props.ignoredClientList.hasOwnProperty(message.username.toLowerCase()))
+            return null;
+
+          //Messages starting with '!' are considered as bot except those ones for me
+          if(message.bot || /^!/.test(message.message)) {
+
+            //If we are ignoring bots and the message is from a bot do not render the message
+            if (this.props.botsDisplayMode === 'none')
+              return null;
+
+            pri += ' msg-bot';
+
+            if (this.props.botsDisplayMode === 'greyed')
+              pri += ' bot-greyed';
+          }
+
+          if (message.role === 'admin')
+            pri += ' msg-admin-message';
+
+          var r = new RegExp('@' + username + '(?:$|[^a-z0-9_\-])', 'i');
+          if (username && message.username != username && r.test(message.message)) {
+            pri += ' msg-highlight-message';
+          }
+
+          var msgDate = new Date(message.date);
+          var timeString = msgDate.getHours() + ':' + ((msgDate.getMinutes() < 10 )? ('0' + msgDate.getMinutes()) : msgDate.getMinutes()) + ' ';
+
+          return D.li({ className: pri },
+                   D.span({
+                       className: 'time-stamp'
+                     },
+                     timeString
+                   ),
+                   D.a({
+                       href: '/user/' + message.username,
+                       target: '_blank'
+                     },
+                     message.username, ':'
+                   ),
+                   ' ',
+                   D.span({
+                       className: 'msg-body',
+                       dangerouslySetInnerHTML: {
+                       __html: Autolinker.link(
+                         escapeHTML(message.message),
+                         { truncate: 50, replaceFn: replaceUsernameMentions }
+                       )
+                     }
+                   })
+                 );
+
+        case 'mute':
+          pri = 'msg-mute-message';
+          return D.li({ className: pri },
+                   D.a({ href: '/user/' + message.moderator,
+                         target: '_blank'
+                       },
+                       '*** <'+message.moderator+'>'),
+                   message.shadow ? ' shadow muted ' : ' muted ',
+                   D.a({ href: '/user/' + message.username,
+                         target: '_blank'
+                       },
+                       '<'+message.username+'>'
+                   ),
+                   ' for ' + message.timespec);
+
+        case 'unmute':
+          pri = 'msg-mute-message';
+          return D.li({ className: pri },
+                   D.a({ href: '/user/' + message.moderator,
+                         target: '_blank'
+                       },
+                       '*** <'+message.moderator+'>'),
+                   message.shadow ? ' shadow unmuted ' : ' unmuted ',
+                   D.a({ href: '/user/' + message.username,
+                         target: '_blank'
+                       },
+                       '<'+message.username+'>')
+                 );
+
+        case 'error':
+        case 'info':
+        case 'client_message':
+          pri = 'msg-info-message';
+          return D.li({ className: pri },
+                      D.span(null, ' *** ' + message.message)
+                 );
+        default:
+          return null;
+        }
+      }
+    });
+    var ChatMessage = React.createFactory(ChatMessageClass);
+
     return React.createClass({
         displayName: 'Chat',
 
@@ -279,8 +396,15 @@ define([
             function renderCurrentChannelMessages() {
                 //Render the messages of the current channel
                 var messages = [];
-                for (var i = self.state.history.length-1; i >= 0; i--)
-                    messages.push(self._renderMessage(self.state.history[i]));
+                var history = self.state.history;
+                for (var i = history.length-1; i >= 0; i--)
+                  messages.push(ChatMessage({
+                    key: history[i].mid,
+                    message: history[i],
+                    username: self.state.username,
+                    ignoredClientList: self.state.ignoredClientList,
+                    botsDisplayMode: self.state.botsDisplayMode
+                  }));
 
                 return D.ul({ className: 'messages', ref: 'messages' },
                     messages
@@ -350,104 +474,6 @@ define([
                 ),
                 D.div({ className: 'spinner-pre-loader' }) //Pre load the image
             );
-        },
-
-        _renderMessage: function(message) {
-
-        var pri = 'msg-chat-message';
-        switch(message.type) {
-            case 'say':
-
-                //If the user is in the ignored client list do not render the message
-                if (this.state.ignoredClientList.hasOwnProperty(message.username.toLowerCase()))
-                    return null;
-
-                //Messages starting with '!' are considered as bot except those ones for me
-                if(message.bot || /^!/.test(message.message)) {
-
-                    //If we are ignoring bots and the message is from a bot do not render the message
-                    if (this.state.botsDisplayMode === 'none')
-                        return null;
-
-                    pri += ' msg-bot';
-
-                    if (this.state.botsDisplayMode === 'greyed')
-                        pri += ' bot-greyed';
-                }
-
-                if (message.role === 'admin')
-                    pri += ' msg-admin-message';
-
-                var username = this.state.username;
-
-                var r = new RegExp('@' + username + '(?:$|[^a-z0-9_\-])', 'i');
-                if (username && message.username != username && r.test(message.message)) {
-                    pri += ' msg-highlight-message';
-                }
-
-                var msgDate = new Date(message.date);
-                var timeString = msgDate.getHours() + ':' + ((msgDate.getMinutes() < 10 )? ('0' + msgDate.getMinutes()) : msgDate.getMinutes()) + ' ';
-
-                return D.li({ className: pri, key: message.mid },
-                    D.span({
-                            className: 'time-stamp'
-                        },
-                        timeString
-                    ),
-                    D.a({
-                            href: '/user/' + message.username,
-                            target: '_blank'
-                        },
-                        message.username, ':'
-                    ),
-                    ' ',
-                    D.span({
-                        className: 'msg-body',
-                        dangerouslySetInnerHTML: {
-                            __html: Autolinker.link(
-                                escapeHTML(message.message),
-                                { truncate: 50, replaceFn: replaceUsernameMentions }
-                            )
-                        }
-                    })
-                );
-            case 'mute':
-                pri = 'msg-mute-message';
-                return D.li({ className: pri, key: message.mid },
-                    D.a({ href: '/user/' + message.moderator,
-                            target: '_blank'
-                        },
-                        '*** <'+message.moderator+'>'),
-                    message.shadow ? ' shadow muted ' : ' muted ',
-                    D.a({ href: '/user/' + message.username,
-                            target: '_blank'
-                        },
-                        '<'+message.username+'>'),
-                    ' for ' + message.timespec);
-            case 'unmute':
-                pri = 'msg-mute-message';
-                return D.li({ className: pri, key: message.mid },
-                    D.a({ href: '/user/' + message.moderator,
-                            target: '_blank'
-                        },
-                        '*** <'+message.moderator+'>'),
-                    message.shadow ? ' shadow unmuted ' : ' unmuted ',
-                    D.a({ href: '/user/' + message.username,
-                            target: '_blank'
-                        },
-                        '<'+message.username+'>')
-                );
-            case 'error':
-            case 'info':
-            case 'client_message':
-                pri = 'msg-info-message';
-                return D.li({ className: pri, key: message.mid },
-                    D.span(null, ' *** ' + message.message));
-                break;
-            default:
-                break;
         }
-    }
-});
-
+    });
 });
