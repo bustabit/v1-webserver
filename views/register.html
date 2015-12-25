@@ -20,7 +20,17 @@
             document.getElementById('confirmation').setCustomValidity("Confirmation and password should be the same");
         } else document.getElementById("confirmation").setCustomValidity('');
     }
+
+
 </script>
+
+<div class="warning">
+    Reminder: You must use a strong and <em>unique</em> password. Other sites have been logging and leaking passwords,
+    if you do not use a unique passwords you will probably end up hacked.
+    Here's a strong and unique password: <strong id="randPassword"></strong>&nbsp;
+    you can use this (just make sure to save it, and set a recovery email)
+</div>
+
         <div class="register">
             <form action="/register" method="post" onsubmit="return submitEnabled;">
                 <div class="row">
@@ -80,5 +90,53 @@
                 </div>
             </form>
         </div>
+<script>
+    var Password = {
+
+        _pattern : /[a-zA-Z0-9]/,
+
+
+        _getRandomByte : function()
+        {
+
+            if(window.crypto && window.crypto.getRandomValues)
+            {
+                var result = new Uint8Array(1);
+                window.crypto.getRandomValues(result);
+                return result[0];
+            }
+            else if(window.msCrypto && window.msCrypto.getRandomValues)
+            {
+                var result = new Uint8Array(1);
+                window.msCrypto.getRandomValues(result);
+                return result[0];
+            }
+            else
+            {
+                return Math.floor(Math.random() * 256);
+            }
+        },
+
+        generate : function(length)
+        {
+            return Array.apply(null, {'length': length})
+                .map(function()
+                {
+                    var result;
+                    while(true)
+                    {
+                        result = String.fromCharCode(this._getRandomByte());
+                        if(this._pattern.test(result))
+                        {
+                            return result;
+                        }
+                    }
+                }, this)
+                .join('');
+        }
+
+    };
+    document.getElementById('randPassword').innerText = Password.generate(16)
+</script>
 #}}
 {{#def.include('./template/main_old')}}
