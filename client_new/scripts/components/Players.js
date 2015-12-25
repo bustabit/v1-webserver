@@ -143,7 +143,7 @@ define([
                         'me': self.state.engine.username === user.username
                     });
 
-                    trUsersLostPlaying.push( D.tr({ className: classes, key: 'user' + i },
+                    trUsersLostPlaying.push( D.tr({ className: classes, key: user.username },
                         D.td(null, D.a({ href: '/user/' + user.username,
                                 target: '_blank'
                             },
@@ -169,7 +169,7 @@ define([
                         'me': self.state.engine.username === user.username
                     });
 
-                    trUsersWonCashed.push( D.tr({ className: classes, key: 'user' + i },
+                    trUsersWonCashed.push( D.tr({ className: classes, key: user.username },
                         D.td(null, D.a({ href: '/user/' + user.username,
                                 target: '_blank'
                             },
@@ -207,7 +207,7 @@ define([
                         'me': self.state.engine.username === entry.username
                     });
 
-                    return D.tr({ className: classes, key: 'user' + i },
+                    return D.tr({ className: classes, key: entry.username },
                         D.td(null, D.a({ href: '/user/' + entry.username,
                                 target: '_blank'
                             },
@@ -239,7 +239,7 @@ define([
                     });
 
                     return D.tr(
-                        { className: classes, key: 'user' + i },
+                        { className: classes, key: entry.username },
                         D.td(null, D.a({
                                 href: '/user/' + entry.username,
                                 target: '_blank'
