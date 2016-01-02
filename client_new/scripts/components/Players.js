@@ -24,6 +24,78 @@ define([
         }
     }
 
+    var PlayingEntryClass = React.createClass({
+      displayName: 'PlayingEntry',
+      mixins: [React.addons.PureRenderMixin],
+
+      propTypes: {
+        gameState: React.PropTypes.string.isRequired,
+        clientUsername: React.PropTypes.string,
+
+        username: React.PropTypes.string.isRequired,
+        bet: React.PropTypes.number,
+        bonusPercentage: React.PropTypes.string.isRequired
+      },
+
+      render: function() {
+        var bonusClass = (this.props.gameState === 'IN_PROGRESS')? 'bonus-projection' : '';
+        var classes = CX({
+            'user-playing': true,
+            'me': this.props.clientUsername === this.props.username
+        });
+
+        return D.tr({ className: classes },
+            D.td(null, D.a({ href: '/user/' + this.props.username,
+                    target: '_blank'
+                },
+                this.props.username)),
+            D.td(null, '-'),
+            D.td(null,
+                this.props.bet ? Clib.formatSatoshis(this.props.bet, 0) : '?'
+            ),
+            D.td({ className: bonusClass }, this.props.bonusPercentage),
+            D.td(null, '-')
+        );
+      }
+    });
+    var PlayingEntry = React.createFactory(PlayingEntryClass);
+
+    var CashedEntryClass = React.createClass({
+      displayName: 'CashedEntry',
+      mixins: [React.addons.PureRenderMixin],
+
+      propTypes: {
+        gameState: React.PropTypes.string.isRequired,
+        clientUsername: React.PropTypes.string,
+
+        username: React.PropTypes.string.isRequired,
+        bet: React.PropTypes.number.isRequired,
+        bonusPercentage: React.PropTypes.string.isRequired,
+        stoppedAt: React.PropTypes.number.isRequired
+      },
+
+      render: function() {
+        var bonusClass = (this.props.gameState === 'IN_PROGRESS')? 'bonus-projection' : '';
+        var profit = calcProfit(this.props.bet, this.props.stoppedAt);
+        var classes = CX({
+          'user-cashed': true,
+          'me': this.props.clientUsername === this.props.username
+        });
+
+        return D.tr({ className: classes, key: this.props.username },
+            D.td(null, D.a({ href: '/user/' + this.props.username,
+                    target: '_blank'
+                },
+                this.props.username)),
+            D.td(null, this.props.stoppedAt/100 + 'x'),
+            D.td(null, Clib.formatSatoshis(this.props.bet, 0)),
+            D.td({ className: bonusClass }, this.props.bonusPercentage),
+            D.td(null, Clib.formatSatoshis(profit))
+        );
+      }
+    });
+    var CashedEntry = React.createFactory(CashedEntryClass);
+
     return React.createClass({
         displayName: 'usersPlaying',
 
@@ -65,7 +137,7 @@ define([
             this._animRequest =
             window.requestAnimationFrame(function() {
                 if(self.isMounted())
-                    self.forceUpdate();
+                  self.setState(getState());
             });
         },
 
@@ -130,55 +202,43 @@ define([
 
             //Users Playing and users cashed
             if(game.gameState === 'IN_PROGRESS' || game.gameState === 'STARTING') {
-                var i, length;
-                var bonusClass = (game.gameState === 'IN_PROGRESS')? 'bonus-projection' : '';
+                var i, length, user, bonus;
 
                 trUsersLostPlaying = [];
                 for(i=0, length = usersLostPlaying.length; i < length; i++) {
+                  user = usersLostPlaying[i];
+                  bonus =
+                    game.gameState === 'STARTING'? '-' :
+                    user.bonus ? Clib.formatDecimals((user.bonus*100/user.bet), 2) + '%' :
+                      '0%';
 
-                    var user = usersLostPlaying[i];
-                    var bonus = (game.gameState === 'IN_PROGRESS')? ( (user.bonus)? Clib.formatDecimals((user.bonus*100/user.bet), 2) + '%': '0%' ) : '-';
-                    var classes = CX({
-                        'user-playing': true,
-                        'me': self.state.engine.username === user.username
-                    });
-
-                    trUsersLostPlaying.push( D.tr({ className: classes, key: user.username },
-                        D.td(null, D.a({ href: '/user/' + user.username,
-                                target: '_blank'
-                            },
-                            user.username)),
-                        D.td(null, '-'),
-                        D.td(null,
-                            user.bet ? Clib.formatSatoshis(user.bet, 0) : '?'
-                        ),
-                        D.td({ className: bonusClass }, bonus),
-                        D.td(null, '-')
-                    ));
-
+                  trUsersLostPlaying.push(PlayingEntry({
+                    key: user.username,
+                    gameState: game.gameState,
+                    clientUsername: game.username,
+                    username: user.username,
+                    bet: user.bet,
+                    bonusPercentage: bonus
+                  }));
                 }
 
                 trUsersWonCashed = [];
                 for (i=0, length = usersWonCashed.length; i < length; i++) {
+                  user = usersWonCashed[i];
+                  bonus =
+                    game.gameState === 'STARTING'? '-' :
+                    user.bonus ? Clib.formatDecimals((user.bonus*100/user.bet), 2) + '%' :
+                      '0%';
 
-                    var user = usersWonCashed[i];
-                    var profit = calcProfit(user.bet, user.stopped_at);
-                    var bonus = (game.gameState === 'IN_PROGRESS')? ( (user.bonus)? Clib.formatDecimals((user.bonus*100/user.bet), 2) + '%': '0%' ) : '-';
-                    var classes = CX({
-                        'user-cashed': true,
-                        'me': self.state.engine.username === user.username
-                    });
-
-                    trUsersWonCashed.push( D.tr({ className: classes, key: user.username },
-                        D.td(null, D.a({ href: '/user/' + user.username,
-                                target: '_blank'
-                            },
-                            user.username)),
-                        D.td(null, user.stopped_at/100 + 'x'),
-                        D.td(null, Clib.formatSatoshis(user.bet, 0)),
-                        D.td({ className: bonusClass }, bonus),
-                        D.td(null, Clib.formatSatoshis(profit))
-                    ));
+                  trUsersWonCashed.push(CashedEntry({
+                    key: user.username,
+                    gameState: game.gameState,
+                    clientUsername: game.username,
+                    username: user.username,
+                    bet: user.bet,
+                    bonusPercentage: bonus,
+                    stoppedAt: user.stopped_at
+                  }));
                 }
 
                 tBody = D.tbody({ className: '' },
