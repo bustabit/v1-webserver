@@ -58,6 +58,7 @@ define([
     var ChatMessageClass = React.createClass({
 
       displayName: 'ChatMessage',
+      mixins: [React.addons.PureRenderMixin],
 
       propTypes: {
         message: React.PropTypes.object.isRequired,

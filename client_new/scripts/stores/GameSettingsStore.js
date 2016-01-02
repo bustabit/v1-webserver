@@ -30,7 +30,11 @@
     if(localStorage['currentTheme'] === 'black')
         Clib.loadCss(_themeFileName, 'theme-black');
 
-    /** List of ignored users client side **/
+    /**
+     * List of ignored users client side. Some components speed up rendering by checking for
+     * object identity for this list. Hence, it is crucial for correctness that no destructive
+     * updates are performed on this object. Eventually, this can be replaced by an immutable Set.
+     */
     var _ignoredClientList = JSON.parse(Clib.localOrDef('ignoredList', '{}'));
 
 
@@ -75,6 +79,8 @@
         },
 
         _ignoreUser: function(username) {
+            // Non-destructive update
+            _ignoredClientList = _.assign({}, _ignoredClientList);
             _ignoredClientList[username.toLowerCase()] = { username: username };
             localStorage['ignoredList'] = JSON.stringify(_ignoredClientList);
         },
@@ -82,6 +88,8 @@
         _approveUser: function(username) {
             username = username.toLowerCase();
             if(_ignoredClientList[username]) {
+                // Non-destructive update
+                _ignoredClientList = _.assign({}, _ignoredClientList);
                 delete _ignoredClientList[username];
                 localStorage['ignoredList'] = JSON.stringify(_ignoredClientList);
             }
