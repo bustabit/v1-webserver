@@ -62,7 +62,7 @@ define([
 
       propTypes: {
         message: React.PropTypes.object.isRequired,
-        username: React.PropTypes.string.isRequired,
+        username: React.PropTypes.string,
         ignoredClientList: React.PropTypes.object.isRequired,
         botsDisplayMode: React.PropTypes.string.isRequired
       },
