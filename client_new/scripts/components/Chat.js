@@ -51,7 +51,7 @@ define([
     function getState() {
       var state = ChatStore.getState().toObject();
       state.ignoredClientList = GameSettingsStore.getIgnoredClientList();
-      state.history = state.channels.getIn([state.currentChannel, 'history']).toArray();
+      state.history = state.channels.getIn([state.currentChannel, 'history']);
       return state;
     }
 
@@ -214,9 +214,9 @@ define([
                 msgsNode.scrollTop = msgsNode.scrollHeight;
 
             //If there is a new message scroll to the bottom if is near to it
-            } else if (this.state.history.length != this.listLength) {
+            } else if (this.state.history.size != this.listLength) {
 
-                this.listLength = this.state.history.length;
+                this.listLength = this.state.history.size;
 
                 //If messages are rendered scroll down
                 if(this.refs.messages) {
@@ -396,16 +396,15 @@ define([
             //Render current channel messages
             function renderCurrentChannelMessages() {
                 //Render the messages of the current channel
-                var messages = [];
-                var history = self.state.history;
-                for (var i = history.length-1; i >= 0; i--)
-                  messages.push(ChatMessage({
-                    key: history[i].mid,
-                    message: history[i],
+                var messages = self.state.history.map(function(msg) {
+                  return ChatMessage({
+                    key: msg.mid,
+                    message: msg,
                     username: self.state.username,
                     ignoredClientList: self.state.ignoredClientList,
                     botsDisplayMode: self.state.botsDisplayMode
-                  }));
+                  });
+                });
 
                 return D.ul({ className: 'messages', ref: 'messages' },
                     messages

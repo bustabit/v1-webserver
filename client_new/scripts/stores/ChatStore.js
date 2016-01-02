@@ -27,7 +27,7 @@ define([
 
   function createChannel(history) {
     return Immutable.Map({
-      history: Immutable.Seq(history || []),
+      history: Immutable.List(history || []).reverse(),
       unreadCount: 0
     });
   }
@@ -216,8 +216,11 @@ define([
         message.mid = freshMessageId(state);
 
         // Insert the message and trim the history if it's too long.
-        state.updateIn(['channels', channelName, 'history'], function(h) {
-          return Immutable.Seq([message]).concat(h).take(AppConstants.Chat.MAX_LENGTH);
+        state.updateIn(['channels', channelName, 'history'], function(history) {
+          history = history.push(message);
+          while (history.size > AppConstants.Chat.MAX_LENGTH)
+            history = history.shift();
+          return history;
         });
 
         if (channelName === _state.get('currentChannel')) {
@@ -292,7 +295,7 @@ define([
 
               if (channels.has(channelName)) {
                 // If the channel is already open, then simply overwrite the history.
-                channels.setIn([channelName, 'history'], Immutable.Seq(channelHistory));
+                channels.setIn([channelName, 'history'], Immutable.List(channelHistory).reverse());
               } else {
                 // If the channel is not yet open, create a new enty in the channel map.
                 channels.set(channelName, createChannel(channelHistory));
