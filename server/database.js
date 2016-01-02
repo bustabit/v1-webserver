@@ -271,7 +271,7 @@ exports.getUserFromUsername = function(username, callback) {
 exports.getUsersFromEmail = function(email, callback) {
     assert(email, callback);
 
-    query('select * from users where email = lower($1)', [email], function(err, data) {
+    query('select * from users where lower(email) = lower($1)', [email], function(err, data) {
        if (err) return callback(err);
 
         if (data.rows.length === 0)
