@@ -23,6 +23,7 @@
     var _graphMode = Clib.localOrDef('graphMode', 'graphics'); //graphics || text
     var _controlsPosition = Clib.localOrDef('controlsPosition', 'right'); //right || left
     var _leftWidget = Clib.localOrDef('leftWidget', 'players'); //players || history || chat
+    var _playerListSize = Clib.localOrDef('playerListSize', AppConstants.PlayerList.DEFAULT_PLAYER_LIST_SIZE);
 
     /** Hotkeys **/
     var _hotkeysActive = false; //true || false //Disabled by default!
@@ -69,6 +70,11 @@
             localStorage['graphMode'] = graphMode;
         },
 
+        _setPlayerListSize: function(playerListSize) {
+            _playerListSize = playerListSize;
+            localStorage['playerListSize'] = playerListSize;
+        },
+
         _setControlsSize: function(controlsSize) {
             _controlsSize = controlsSize;
             localStorage['controlsSize'] = controlsSize;
@@ -101,8 +107,9 @@
                 controlsSize: _controlsSize,
                 controlsPosition: _controlsPosition,
                 leftWidget: _leftWidget,
-                hotkeysActive: _hotkeysActive
-            }
+                hotkeysActive: _hotkeysActive,
+                playerListSize: _playerListSize
+            };
         },
 
         getCurrentTheme: function() {
@@ -131,6 +138,11 @@
 
             case AppConstants.ActionTypes.SET_GRAPH_MODE:
                 GameSettingsStore._setGraphMode(action.graphMode);
+                GameSettingsStore.emitChange();
+                break;
+
+            case AppConstants.ActionTypes.SET_PLAYER_LIST_SIZE:
+                GameSettingsStore._setPlayerListSize(action.playerListSize);
                 GameSettingsStore.emitChange();
                 break;
 

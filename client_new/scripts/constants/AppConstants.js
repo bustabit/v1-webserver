@@ -45,6 +45,7 @@ define(['lib/key-mirror'], function(KeyMirror){
             SET_CONTROLS_SIZE: null,
             SET_GRAPH_MODE: null,
             SET_CONTROLS_POSITION: null,
+            SET_PLAYER_LIST_SIZE: null,
             SET_LEFT_WIDGET: null,
             TOGGLE_HOYTKEYS_STATE: null,
 
@@ -74,6 +75,10 @@ define(['lib/key-mirror'], function(KeyMirror){
 
         Chat: {
             MAX_LENGTH: 500
+        },
+
+        PlayerList: {
+            DEFAULT_PLAYER_LIST_SIZE: 30
         },
 
         Animations: {

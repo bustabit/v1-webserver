@@ -22,6 +22,13 @@ define([
             });
         },
 
+        setPlayerListSize: function(playerListSize) {
+            AppDispatcher.handleViewAction({
+                actionType: AppConstants.ActionTypes.SET_PLAYER_LIST_SIZE,
+                playerListSize: playerListSize
+            });
+        },
+
         setControlsPosition: function(controlsPosition) {
             AppDispatcher.handleViewAction({
                 actionType: AppConstants.ActionTypes.SET_CONTROLS_POSITION,
