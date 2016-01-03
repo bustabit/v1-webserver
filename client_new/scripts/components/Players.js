@@ -2,12 +2,14 @@ define([
     'react',
     'game-logic/clib',
     'lodash',
+    'stores/GameSettingsStore',
     'game-logic/GameEngineStore',
     'classnames'
 ], function(
     React,
     Clib,
     _,
+    GameSettingsStore,
     Engine,
     CX
 ){
@@ -18,10 +20,10 @@ define([
         return ((stoppedAt - 100) * bet)/100;
     }
 
-    function getState(){
-        return {
-            engine: Engine
-        }
+    function getState() {
+      var state = GameSettingsStore.getState();
+      state.engine = Engine;
+      return state;
     }
 
     var PlayingEntryClass = React.createClass({
@@ -113,6 +115,8 @@ define([
                 player_bet: this._onChange,
                 cashed_out: this._onChange
             });
+            //Not using all events but the store does not emits a lot
+            GameSettingsStore.addChangeListener(this._onChange);
         },
 
         componentWillUnmount: function() {
@@ -125,6 +129,7 @@ define([
                 player_bet: this._onChange,
                 cashed_out: this._onChange
             });
+            GameSettingsStore.removeChangeListener(this._onChange);
         },
 
         _animRequest: null,
@@ -165,33 +170,41 @@ define([
             if (game.gameState === 'STARTING') {
 
                 //The list is already ordered by engine given an index
-                usersLostPlaying = self.state.engine.joined.map(function(player) {
-                    var bet; // can be undefined
-
+                _.forEach(self.state.engine.joined, function(player) {
+                    var bet = null; // can be null
                     if (player === self.state.engine.username)
                         bet = self.state.engine.nextBetAmount;
-
-                    return { username: player, bet: bet };
+                    else if (usersLostPlaying.length > self.state.playerListSize)
+                        return;
+                    usersLostPlaying.push({ username: player, bet: bet });
                 });
 
             //IN_PROGRESS || ENDED
             } else {
-                _.forEach(game.playerInfo, function (player, username) {
 
-                    if (player.stopped_at)
-                        usersWonCashed.push(player);
-                    else
-                        usersLostPlaying.push(player);
+                var plays = [];
+                _.forEach(game.playerInfo, function (play) {
+                    plays.push(play);
                 });
 
-                usersWonCashed.sort(function(a, b) {
-                    var r = b.stopped_at - a.stopped_at;
+                plays.sort(function(a, b) {
+                    var r = b.bet - a.bet;
                     if (r !== 0) return r;
                     return a.username < b.username ? 1 : -1;
                 });
 
-                usersLostPlaying.sort(function(a, b) {
-                    var r = b.bet - a.bet;
+                _.forEach(plays, function (play, index) {
+                    if (play.username === self.state.engine.username ||
+                        index <= self.state.playerListSize) {
+                    if (play.stopped_at)
+                        usersWonCashed.push(play);
+                    else
+                        usersLostPlaying.push(play);
+                  }
+                });
+
+                usersWonCashed.sort(function(a, b) {
+                    var r = b.stopped_at - a.stopped_at;
                     if (r !== 0) return r;
                     return a.username < b.username ? 1 : -1;
                 });

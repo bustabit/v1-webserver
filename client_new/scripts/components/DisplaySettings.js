@@ -41,6 +41,10 @@ define([
             DisplaySettingsActions.setGraphMode(e.target.value);
         },
 
+        _setPlayerListSize: function(e) {
+            DisplaySettingsActions.setPlayerListSize(e.target.value);
+        },
+
         _setControlsPosition: function(e) {
             DisplaySettingsActions.setControlsPosition(e.target.value);
         },
@@ -64,6 +68,15 @@ define([
                         D.option({ value: 'graphics' }, 'Graphics'),
                         D.option({ value: 'text' }, 'Text (Low CPU usage)')
                     )
+                ),
+                D.div({ className: 'option-row' },
+                    D.span({ className: 'option-text' }, 'Player list size'),
+                    D.input({
+                        min: 1,
+                        value: this.state.playerListSize,
+                        type: 'number',
+                        onChange: this._setPlayerListSize
+                    })
                 )
                 //D.div({ className: 'option-row' },
                 //    D.span({ className: 'option-text' }, 'Bet controls position'),
