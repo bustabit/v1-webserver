@@ -4,7 +4,7 @@ define([
     'autolinker',
     'actions/ChatActions',
     'stores/GameSettingsStore',
-    'game-logic/ChatEngineStore',
+    'stores/ChatStore',
     'components/ChatChannelSelector'
 ], function(
     React,
@@ -12,7 +12,7 @@ define([
     Autolinker,
     ChatActions,
     GameSettingsStore,
-    ChatEngineStore,
+    ChatStore,
     ChatChannelSelectorClass
 ){
     // Overrides Autolinker.js' @username handler to instead link to
@@ -48,12 +48,130 @@ define([
     /* Constants */
     var SCROLL_OFFSET = 120;
 
-    function getState(evName){
-        var state = {};
-        state.ignoredClientList = GameSettingsStore.getIgnoredClientList();
-        state.evName = evName;
-        return state;
+    function getState() {
+      var state = ChatStore.getState().toObject();
+      state.ignoredClientList = GameSettingsStore.getIgnoredClientList();
+      state.history = state.channels.getIn([state.currentChannel, 'history']);
+      return state;
     }
+
+    var ChatMessageClass = React.createClass({
+
+      displayName: 'ChatMessage',
+      mixins: [React.addons.PureRenderMixin],
+
+      propTypes: {
+        message: React.PropTypes.object.isRequired,
+        username: React.PropTypes.string,
+        ignoredClientList: React.PropTypes.object.isRequired,
+        botsDisplayMode: React.PropTypes.string.isRequired
+      },
+
+      render: function() {
+        var message = this.props.message;
+        var username = this.props.username;
+
+        console.assert(message.hasOwnProperty('mid'));
+        console.assert(typeof message.mid === 'number');
+
+        var pri = 'msg-chat-message';
+        switch(message.type) {
+        case 'say':
+
+          //If the user is in the ignored client list do not render the message
+          if (this.props.ignoredClientList.hasOwnProperty(message.username.toLowerCase()))
+            return null;
+
+          //Messages starting with '!' are considered as bot except those ones for me
+          if(message.bot || /^!/.test(message.message)) {
+
+            //If we are ignoring bots and the message is from a bot do not render the message
+            if (this.props.botsDisplayMode === 'none')
+              return null;
+
+            pri += ' msg-bot';
+
+            if (this.props.botsDisplayMode === 'greyed')
+              pri += ' bot-greyed';
+          }
+
+          if (message.role === 'admin')
+            pri += ' msg-admin-message';
+
+          var r = new RegExp('@' + username + '(?:$|[^a-z0-9_\-])', 'i');
+          if (username && message.username != username && r.test(message.message)) {
+            pri += ' msg-highlight-message';
+          }
+
+          var msgDate = new Date(message.date);
+          var timeString = msgDate.getHours() + ':' + ((msgDate.getMinutes() < 10 )? ('0' + msgDate.getMinutes()) : msgDate.getMinutes()) + ' ';
+
+          return D.li({ className: pri },
+                   D.span({
+                       className: 'time-stamp'
+                     },
+                     timeString
+                   ),
+                   D.a({
+                       href: '/user/' + message.username,
+                       target: '_blank'
+                     },
+                     message.username, ':'
+                   ),
+                   ' ',
+                   D.span({
+                       className: 'msg-body',
+                       dangerouslySetInnerHTML: {
+                       __html: Autolinker.link(
+                         escapeHTML(message.message),
+                         { truncate: 50, replaceFn: replaceUsernameMentions }
+                       )
+                     }
+                   })
+                 );
+
+        case 'mute':
+          pri = 'msg-mute-message';
+          return D.li({ className: pri },
+                   D.a({ href: '/user/' + message.moderator,
+                         target: '_blank'
+                       },
+                       '*** <'+message.moderator+'>'),
+                   message.shadow ? ' shadow muted ' : ' muted ',
+                   D.a({ href: '/user/' + message.username,
+                         target: '_blank'
+                       },
+                       '<'+message.username+'>'
+                   ),
+                   ' for ' + message.timespec);
+
+        case 'unmute':
+          pri = 'msg-mute-message';
+          return D.li({ className: pri },
+                   D.a({ href: '/user/' + message.moderator,
+                         target: '_blank'
+                       },
+                       '*** <'+message.moderator+'>'),
+                   message.shadow ? ' shadow unmuted ' : ' unmuted ',
+                   D.a({ href: '/user/' + message.username,
+                         target: '_blank'
+                       },
+                       '<'+message.username+'>')
+                 );
+
+        case 'error':
+        case 'info':
+        case 'client_message':
+          pri = 'msg-info-message';
+          return D.li({ className: pri },
+                      D.span(null, ' *** ' + message.message)
+                 );
+        default:
+          return null;
+        }
+      }
+    });
+    var ChatMessage = React.createFactory(ChatMessageClass);
 
     return React.createClass({
         displayName: 'Chat',
@@ -68,7 +186,7 @@ define([
         },
 
         componentDidMount: function() {
-            ChatEngineStore.on('all', this._onChange); //Use all events
+            ChatStore.addChangeListener(this._onChange); //Use all events
             GameSettingsStore.addChangeListener(this._onChange); //Not using all events but the store does not emits a lot
 
             //If messages are rendered scroll down to the bottom
@@ -79,7 +197,7 @@ define([
         },
 
         componentWillUnmount: function() {
-            ChatEngineStore.off('all', this._onChange);
+            ChatStore.removeChangeListener(this._onChange);
             GameSettingsStore.removeChangeListener(this._onChange);
         },
 
@@ -87,18 +205,18 @@ define([
         componentDidUpdate: function(prevProps, prevState) {
 
             //If the chat is not connected do nothing
-            if(ChatEngineStore.connectionState !== 'JOINED')
+            if (this.state.connectionState !== 'JOINED')
                 return;
 
             //On join or channel change scroll to the bottom
-            if(this.state.evName === 'joined' || this.state.evName === 'channel-changed') {
+            if (this.state.lastEvent === 'JOINED' || this.state.lastEvent === 'CHANGED_CHANNEL') {
                 var msgsNode = this.refs.messages.getDOMNode();
                 msgsNode.scrollTop = msgsNode.scrollHeight;
 
             //If there is a new message scroll to the bottom if is near to it
-            } else if(ChatEngineStore.history.length != this.listLength){
+            } else if (this.state.history.size != this.listLength) {
 
-                this.listLength = ChatEngineStore.history.length;
+                this.listLength = this.state.history.size;
 
                 //If messages are rendered scroll down
                 if(this.refs.messages) {
@@ -111,9 +229,9 @@ define([
             }
         },
 
-        _onChange: function(evName) {
-            if(this.isMounted())
-                this.setState(getState(evName));
+        _onChange: function() {
+            if (this.isMounted())
+                this.setState(getState());
         },
 
         _sendMessage: function(e) {
@@ -151,7 +269,7 @@ define([
             switch(cmd) {
                 case 'ignore':
 
-                    if(ChatEngineStore.username === rest) {
+                    if (this.state.username === rest) {
                         ChatActions.showClientMessage('Cant ignore yourself');
 
                     } else if(Clib.isInvalidUsername(rest)) {
@@ -206,6 +324,7 @@ define([
 
         render: function() {
             var self = this;
+            var state = this.state;
 
             //Messages div
             var chatMessagesContainer;
@@ -217,7 +336,7 @@ define([
             var chatInputDisabled = false;
             var chatInputClass = 'chat-input';
 
-            switch(ChatEngineStore.connectionState) {
+            switch (state.connectionState) {
 
                 //Render loading spinner on chat container and render 'connecting' on the chat input
                 case 'CONNECTING':
@@ -249,7 +368,7 @@ define([
                     chatMessagesContainer = renderCurrentChannelMessages();
 
                     //If user is logged
-                    if(ChatEngineStore.username) {
+                    if (state.username) {
                         chatInputPlaceholder = 'Type here...';
                         chatInputOnKeyDown = this._sendMessage;
 
@@ -277,11 +396,17 @@ define([
             //Render current channel messages
             function renderCurrentChannelMessages() {
                 //Render the messages of the current channel
-                var messages = [];
-                for(var i = ChatEngineStore.history.length-1; i >= 0; i--)
-                    messages.push(self._renderMessage(ChatEngineStore.history[i], i));
+                var messages = self.state.history.map(function(msg) {
+                  return ChatMessage({
+                    key: msg.mid,
+                    message: msg,
+                    username: self.state.username,
+                    ignoredClientList: self.state.ignoredClientList,
+                    botsDisplayMode: self.state.botsDisplayMode
+                  });
+                });
 
-                 return D.ul({ className: 'messages', ref: 'messages' },
+                return D.ul({ className: 'messages', ref: 'messages' },
                     messages
                 );
             }
@@ -302,16 +427,31 @@ define([
              *
              * Show them always except when the engine is connecting because it does not have history in that moment
              */
-            var channelTabs = (ChatEngineStore.connectionState !== 'CONNECTING')? ChatEngineStore.mapChannels(function(channelObject, index, keys) {
-                return D.div({ className: 'tab', key: index, onClick: channelObject.currentChannel? (channelObject.closable? self._closeChannel : null) : self._selectChannel(channelObject.name) },
-                    channelObject.closable? D.i({ className: 'fa fa-times close-channel' }) : null,
-                    channelObject.currentChannel? D.div({ className: 'selected-border' }) : null,
-                    channelObject.unreadCount? D.span({ className: 'unread-counter' }, channelObject.unreadCount) : null,
+            var channelTabs = [];
+            if (state.connectionState !== 'CONNECTING') {
+              state.channels.forEach(function(channelObject, channelName) {
+                channelObject = channelObject.toObject();
+                var isCurrentChannel = state.currentChannel === channelName;
+                var isClosable = isCurrentChannel &&
+                                 channelName != 'english' &&
+                                 channelName != 'moderators';
+                var hasUnread = channelObject.unreadCount != 0;
+
+                var onClickHandler =
+                      isClosable? self._closeChannel :
+                      isCurrentChannel? null :
+                      self._selectChannel(channelName);
+
+                channelTabs.push(D.div({ className: 'tab', key: channelName, onClick: onClickHandler },
+                    isClosable? D.i({ className: 'fa fa-times close-channel' }) : null,
+                    isCurrentChannel? D.div({ className: 'selected-border' }) : null,
+                    hasUnread? D.span({ className: 'unread-counter' }, channelObject.unreadCount) : null,
                     D.img({
-                        src: 'img/flags/' + channelObject.name + '.png'
+                        src: 'img/flags/' + channelName + '.png'
                     })
-                );
-            }) : null;
+                ));
+              });
+            }
 
             return D.div({ id: 'chat' },
 
@@ -327,111 +467,13 @@ define([
                     chatInput,
                     ChatChannelSelector({
                         selectChannel: this._selectChannel,
-                        selectedChannel: ChatEngineStore.currentChannel,
+                        selectedChannel: state.currentChannel,
                         isMobileOrSmall: this.props.isMobileOrSmall,
-                        moderator: ChatEngineStore.moderator
+                        moderator: state.isModerator
                     })
                 ),
                 D.div({ className: 'spinner-pre-loader' }) //Pre load the image
             );
-        },
-
-        _renderMessage: function(message, index) {
-
-        var pri = 'msg-chat-message';
-        switch(message.type) {
-            case 'say':
-
-                //If the user is in the ignored client list do not render the message
-                if (this.state.ignoredClientList.hasOwnProperty(message.username.toLowerCase()))
-                    return;
-
-                //Messages starting with '!' are considered as bot except those ones for me
-                if(message.bot || /^!/.test(message.message)) {
-
-                    //If we are ignoring bots and the message is from a bot do not render the message
-                    if (ChatEngineStore.botsDisplayMode === 'none')
-                        return;
-
-                    pri += ' msg-bot';
-
-                    if(ChatEngineStore.botsDisplayMode === 'greyed')
-                        pri += ' bot-greyed';
-                }
-
-                if (message.role === 'admin')
-                    pri += ' msg-admin-message';
-
-                var username = ChatEngineStore.username;
-
-                var r = new RegExp('@' + username + '(?:$|[^a-z0-9_\-])', 'i');
-                if (username && message.username != username && r.test(message.message)) {
-                    pri += ' msg-highlight-message';
-                }
-
-                var msgDate = new Date(message.date);
-                var timeString = msgDate.getHours() + ':' + ((msgDate.getMinutes() < 10 )? ('0' + msgDate.getMinutes()) : msgDate.getMinutes()) + ' ';
-
-                return D.li({ className: pri , key: 'msg' + index },
-                    D.span({
-                            className: 'time-stamp'
-                        },
-                        timeString
-                    ),
-                    D.a({
-                            href: '/user/' + message.username,
-                            target: '_blank'
-                        },
-                        message.username, ':'
-                    ),
-                    ' ',
-                    D.span({
-                        className: 'msg-body',
-                        dangerouslySetInnerHTML: {
-                            __html: Autolinker.link(
-                                escapeHTML(message.message),
-                                { truncate: 50, replaceFn: replaceUsernameMentions }
-                            )
-                        }
-                    })
-                );
-            case 'mute':
-                pri = 'msg-mute-message';
-                return D.li({ className: pri , key: 'msg' + index },
-                    D.a({ href: '/user/' + message.moderator,
-                            target: '_blank'
-                        },
-                        '*** <'+message.moderator+'>'),
-                    message.shadow ? ' shadow muted ' : ' muted ',
-                    D.a({ href: '/user/' + message.username,
-                            target: '_blank'
-                        },
-                        '<'+message.username+'>'),
-                    ' for ' + message.timespec);
-            case 'unmute':
-                pri = 'msg-mute-message';
-                return D.li({ className: pri , key: 'msg' + index },
-                    D.a({ href: '/user/' + message.moderator,
-                            target: '_blank'
-                        },
-                        '*** <'+message.moderator+'>'),
-                    message.shadow ? ' shadow unmuted ' : ' unmuted ',
-                    D.a({ href: '/user/' + message.username,
-                            target: '_blank'
-                        },
-                        '<'+message.username+'>')
-                );
-            case 'error':
-            case 'info':
-            case 'client_message':
-                pri = 'msg-info-message';
-                return D.li({ className: pri, key: 'msg' + index },
-                    D.span(null, ' *** ' + message.message));
-                break;
-            default:
-                break;
         }
-    }
-});
-
+    });
 });

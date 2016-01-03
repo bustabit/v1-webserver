@@ -8,8 +8,9 @@ requirejs.config({
         seedrandom: '../../node_modules/seedrandom/seedrandom',
         socketio: '../../node_modules/socket.io-client/socket.io',
         mousetrap: '../../node_modules/mousetrap/mousetrap',
-        screenfull: '../../node_modules/screenfull/dist/screenfull'
-    },
+        screenfull: '../../node_modules/screenfull/dist/screenfull',
+        immutable: '../../node_modules/immutable/dist/immutable'
+    }
 });
 
 require(['game']);
