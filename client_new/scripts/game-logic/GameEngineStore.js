@@ -544,15 +544,9 @@ define([
             return player.stopped_at ? -player.stopped_at : null;
         });
 
-        var bonusPool = 0;
-        var largestBet = 0;
-
         //Get max bet and bonus pool
-        for (var i = 0, length = playersArrSorted.length; i < length; ++i) {
-            var bet = playersArrSorted[i].bet;
-            bonusPool += bet / 100;
-            largestBet = Math.max(largestBet, bet);
-        }
+        var bonusPool = _.sum(playersArrSorted, 'bet') / 100;
+        var largestBet = Math.max(0, _.max(playersArrSorted, 'bet').bet);
 
         //The ratio bits per bit bet
         var maxWinRatio = bonusPool / largestBet;
@@ -575,12 +569,11 @@ define([
                 for (var i = 0, length = listOfRecordsPositions.length; i < length; i++) {
 
                     //The alloc qty of this user, if its one it will get all
-                    var toAlloc = (array[listOfRecordsPositions[i]].bet / totalBetAmount) * toAllocAll;
-
-                    bonusPool -= toAlloc;
-
-                    array[listOfRecordsPositions[i]].bonus = toAlloc;
+                    array[listOfRecordsPositions[i]].bonus =
+                      (array[listOfRecordsPositions[i]].bet / totalBetAmount) * toAllocAll;
                 }
+
+                bonusPool -= toAllocAll;
             }
         );
 
