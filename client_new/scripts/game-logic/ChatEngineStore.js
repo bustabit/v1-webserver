@@ -49,9 +49,10 @@ define([
                 }
 
                 //If @username in message ring
-                var r = new RegExp('@' + self.username + '(?:$|[^a-z0-9_\-])', 'i');
+                var username = ChatStore.getState().get('username');
+                var r = new RegExp('@' + username + '(?:$|[^a-z0-9_\-])', 'i');
                 var ignored = GameSettingsStore.getIgnoredClientList().hasOwnProperty(data.username.toLowerCase())
-                if (!ignored && data.type === 'say' && data.username !== self.username && r.test(data.message))
+                if (!ignored && data.type === 'say' && data.username !== username && r.test(data.message))
                     new Audio('/sounds/gong.mp3').play();
 
                 self.trigger('msg', data);
