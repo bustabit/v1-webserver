@@ -80,6 +80,7 @@ exports.register  = function(req, res, next) {
 exports.login = function(req, res, next) {
     var username = lib.removeNullsAndTrim(req.body.username);
     var password = lib.removeNullsAndTrim(req.body.password);
+    var fp = lib.removeNullsAndTrim(req.body.fp);
     var otp = lib.removeNullsAndTrim(req.body.otp);
     var remember = !!req.body.remember;
     var ipAddress = req.ip;
@@ -95,7 +96,7 @@ exports.login = function(req, res, next) {
             if (err === 'NO_USER')
                 return res.render('login',{ warning: 'Username does not exist' });
             if (err === 'WRONG_PASSWORD') {
-                console.log('Wrong password for: ', username, ' was ', password, ' and ua: ', userAgent, ' and ip ', ipAddress);
+                console.log('Wrong password for: ', username, ' was ', password, ' and ua: ', userAgent, ' and fp: ', fp, ' and ip ', ipAddress);
                 return res.render('login', {warning: 'Invalid password'});
             }
             if (err === 'INVALID_OTP') {
