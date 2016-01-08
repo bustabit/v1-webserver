@@ -1,20 +1,16 @@
 define([
     'react',
     'lodash',
-    'game-logic/clib',
     'components/GraphicDisplay',
     'components/TextDisplay',
     'game-logic/GameEngineStore',
-    'stores/ChartStore',
     'stores/GameSettingsStore'
 ], function(
     React,
     _,
-    Clib,
     GraphicDisplayClass,
     TextDisplayClass,
     GameEngineStore,
-    ChartStore,
     GameSettingsStore
 ){
 
@@ -24,7 +20,10 @@ define([
     var TextDisplay = React.createFactory(TextDisplayClass);
 
     function getState(){
-        return _.merge({}, ChartStore.getState(), GameSettingsStore.getState());
+        return _.merge(
+            _.pick(GameSettingsStore.getState(), ['graphMode']),
+            _.pick(GameEngineStore, ['nyan', 'connectionState', 'maxWin'])
+        );
     }
 
     return React.createClass({
@@ -36,9 +35,7 @@ define([
         },
 
         getInitialState: function () {
-            var state = getState();
-            state.nyan = false;
-            return state;
+            return getState();
         },
 
         getThisElementNode: function() {
@@ -78,9 +75,6 @@ define([
         },
 
         _onChange: function() {
-            if(this.state.nyan === true && GameEngineStore.gameState !== 'IN_PROGRESS')
-                this.setState({ nyan: false });
-
             var state = getState();
 
             if(this.state.graphMode !== state.graphMode) {
@@ -111,7 +105,7 @@ define([
 
             //Connection message
             var connectionMessage;
-            switch(GameEngineStore.connectionState) {
+            switch(this.state.connectionState) {
                 case 'CONNECTING':
                     connectionMessage = 'Connecting...';
                     break;
@@ -129,7 +123,7 @@ define([
                     )
                 ),
                 D.div({ className: 'max-profit' },
-                    'Max profit: ', (GameEngineStore.maxWin/1e8).toFixed(4), ' BTC'
+                    'Max profit: ', (this.state.maxWin/1e8).toFixed(4), ' BTC'
                 ),
                 D.canvas({ ref: 'canvas', className: ((this.state.graphMode === 'text')? 'hide': '') }),
                 textDisplay,
