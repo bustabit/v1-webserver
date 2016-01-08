@@ -108,7 +108,8 @@
                 controlsPosition: _controlsPosition,
                 leftWidget: _leftWidget,
                 hotkeysActive: _hotkeysActive,
-                playerListSize: _playerListSize
+                playerListSize: _playerListSize,
+                currentTheme: _currentTheme
             };
         },
 

@@ -4,14 +4,12 @@
 
 define([
     'react',
-    'stores/GameSettingsStore',
     'game-logic/clib',
     'game-logic/stateLib',
     'lodash',
     'game-logic/GameEngineStore'
 ], function(
     React,
-    GameSettingsStore,
     Clib,
     StateLib,
     _,
@@ -22,11 +20,9 @@ define([
     function Graph() {
         this.rendering = false;
         this.animRequest = null;
-
-        this.onChangeBinded = this.onChange.bind(this);
     }
 
-    Graph.prototype.startRendering = function(canvasNode) {
+    Graph.prototype.startRendering = function(canvasNode, config) {
         this.rendering = true;
 
         if (!canvasNode.getContext)
@@ -34,23 +30,13 @@ define([
 
         this.ctx = canvasNode.getContext('2d');
         this.canvas = canvasNode;
-        this.theme = GameSettingsStore.getCurrentTheme();
-        this.configPlotSettings();
+        this.configPlotSettings(config);
 
         this.animRequest = window.requestAnimationFrame(this.render.bind(this));
-
-        GameSettingsStore.on('all', this.onChangeBinded);
     };
 
     Graph.prototype.stopRendering = function() {
         this.rendering = false;
-
-        GameSettingsStore.off('all', this.onChangeBinded);
-    };
-
-    Graph.prototype.onChange = function() {
-        this.theme = GameSettingsStore.getCurrentTheme();
-        this.configPlotSettings();
     };
 
     Graph.prototype.render = function() {
@@ -66,10 +52,10 @@ define([
         this.animRequest = window.requestAnimationFrame(this.render.bind(this));
     };
 
-    Graph.prototype.configPlotSettings = function() {
+    Graph.prototype.configPlotSettings = function(config) {
         this.canvasWidth = this.canvas.width;
         this.canvasHeight = this.canvas.height;
-        this.themeWhite = (this.theme === 'white');
+        this.themeWhite = (config.currentTheme === 'white');
         this.plotWidth = this.canvasWidth - 30;
         this.plotHeight = this.canvasHeight - 20; //280
         this.xStart = this.canvasWidth - this.plotWidth;
@@ -290,12 +276,13 @@ define([
         propTypes: {
             width: React.PropTypes.number.isRequired,
             height: React.PropTypes.number.isRequired,
+            currentTheme: React.PropTypes.string.isRequired
         },
 
         graph: new Graph(),
 
         componentDidMount: function() {
-            this.graph.startRendering(this.getDOMNode());
+            this.graph.startRendering(this.getDOMNode(), this.props);
         },
 
         componentWillUnmount: function() {
@@ -303,7 +290,7 @@ define([
         },
 
         componentDidUpdate: function() {
-            this.graph.configPlotSettings();
+            this.graph.configPlotSettings(this.props);
         },
 
         render: function() {

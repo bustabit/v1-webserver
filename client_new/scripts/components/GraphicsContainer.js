@@ -21,7 +21,7 @@ define([
 
     function getState(){
         return _.merge(
-            _.pick(GameSettingsStore.getState(), ['graphMode']),
+            _.pick(GameSettingsStore.getState(), ['graphMode', 'currentTheme']),
             _.pick(GameEngineStore, ['nyan', 'connectionState', 'maxWin'])
         );
     }
@@ -93,7 +93,7 @@ define([
         render: function() {
             var display = (this.state.graphMode === 'text')?
                   TextDisplay() :
-                  GraphicDisplay(_.pick(this.state, ['width', 'height']));
+                  GraphicDisplay(_.pick(this.state, ['currentTheme', 'width', 'height']));
 
             //Connection message
             var connectionMessage;
