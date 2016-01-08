@@ -195,6 +195,7 @@ CREATE TABLE sessions (
     user_id bigint NOT NULL,
     ip_address inet NOT NULL,
     user_agent text,
+    fingerprint text, -- The fingerprint of the browser that created this session
     ott boolean DEFAULT false,
     created timestamp with time zone NOT NULL DEFAULT now(),
     expired timestamp with time zone NOT NULL DEFAULT now() + interval '21 days'

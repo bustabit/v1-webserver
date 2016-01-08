@@ -29,6 +29,7 @@ exports.register  = function(req, res, next) {
     var username = lib.removeNullsAndTrim(values.user.name);
     var password = lib.removeNullsAndTrim(values.user.password);
     var password2 = lib.removeNullsAndTrim(values.user.confirm);
+    var fp = lib.removeNullsAndTrim(values.user.fp);
     var email = lib.removeNullsAndTrim(values.user.email);
     var ipAddress = req.ip;
     var userAgent = req.get('user-agent');
@@ -59,7 +60,7 @@ exports.register  = function(req, res, next) {
         });
     }
 
-    database.createUser(username, password, email, ipAddress, userAgent, function(err, sessionId) {
+    database.createUser(username, password, email, ipAddress, userAgent, fp, function(err, sessionId) {
         if (err) {
             if (err === 'USERNAME_TAKEN') {
                 values.user.name = null;
@@ -107,7 +108,7 @@ exports.login = function(req, res, next) {
         }
         assert(userId);
 
-        database.createSession(userId, ipAddress, userAgent, remember, function(err, sessionId, expires) {
+        database.createSession(userId, ipAddress, userAgent, remember, fp, function(err, sessionId, expires) {
             if (err)
                 return next(new Error('Unable to create session for userid ' + userId +  ':\n' + err));
 

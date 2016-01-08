@@ -106,7 +106,7 @@ function getClient(runner, callback) {
 }
 
 //Returns a sessionId
-exports.createUser = function(username, password, email, ipAddress, userAgent, callback) {
+exports.createUser = function(username, password, email, ipAddress, userAgent, fp, callback) {
     assert(username && password);
 
     getClient(
@@ -133,7 +133,7 @@ exports.createUser = function(username, password, email, ipAddress, userAgent, c
                                 assert(data.rows.length === 1);
                                 var user = data.rows[0];
 
-                                createSession(client, user.id, ipAddress, userAgent, false, callback);
+                                createSession(client, user.id, ipAddress, userAgent, false, fp, callback);
                             }
                         );
 
@@ -207,7 +207,7 @@ exports.expireSessionsByUserId = function(userId, callback) {
 };
 
 
-function createSession(client, userId, ipAddress, userAgent, remember, callback) {
+function createSession(client, userId, ipAddress, userAgent, remember, fp, callback) {
     var sessionId = uuid.v4();
 
     var expired = new Date();
@@ -216,8 +216,8 @@ function createSession(client, userId, ipAddress, userAgent, remember, callback)
     else
         expired.setDate(expired.getDate() + 21);
 
-    client.query('INSERT INTO sessions(id, user_id, ip_address, user_agent, expired) VALUES($1, $2, $3, $4, $5) RETURNING id',
-        [sessionId, userId, ipAddress, userAgent, expired], function(err, res) {
+    client.query('INSERT INTO sessions(id, user_id, ip_address, user_agent, fingerprint, expired) VALUES($1, $2, $3, $4, $5, $6) RETURNING id',
+        [sessionId, userId, ipAddress, userAgent, fp, expired], function(err, res) {
         if (err) return callback(err);
         assert(res.rows.length === 1);
 
@@ -242,11 +242,11 @@ exports.createOneTimeToken = function(userId, ipAddress, userAgent, callback) {
     });
 };
 
-exports.createSession = function(userId, ipAddress, userAgent, remember, callback) {
+exports.createSession = function(userId, ipAddress, userAgent, remember, fp, callback) {
     assert(userId && callback);
 
     getClient(function(client, callback) {
-        createSession(client, userId, ipAddress, userAgent, remember, callback);
+        createSession(client, userId, ipAddress, userAgent, remember, fp, callback);
     }, callback);
 
 };
