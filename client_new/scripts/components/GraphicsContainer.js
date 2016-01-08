@@ -43,10 +43,10 @@ define([
 
         onWindowResize: function() {
           var domNode = this.getDOMNode();
-          this.setState({
+          this.setState(_.merge(getState(), {
             width: domNode.clientWidth,
             height: domNode.clientHeight
-          });
+          }));
         },
 
         componentDidMount: function() {
@@ -84,6 +84,13 @@ define([
         _onChange: function() {
             if(this.isMounted())
                 this.setState(getState());
+        },
+
+        componentDidUpdate: function(prevProps, prevState) {
+            // Detect changes on the controls size to trigger a window resize to
+            // resize the canvas of the graphics display.
+            if(this.props.controlsSize !== prevProps.controlsSize)
+                this.onWindowResize();
         },
 
         _onNyanAnim: function() {
