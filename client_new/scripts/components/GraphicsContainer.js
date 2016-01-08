@@ -16,7 +16,7 @@ define([
 
     var D = React.DOM;
 
-    var GraphicDisplay = new GraphicDisplayClass();
+    var GraphicDisplay = React.createFactory(GraphicDisplayClass);
     var TextDisplay = React.createFactory(TextDisplayClass);
 
     function getState(){
@@ -27,7 +27,7 @@ define([
     }
 
     return React.createClass({
-        displayName: 'Chart',
+        displayName: 'GraphicsContainer',
 
         propTypes: {
             isMobileOrSmall: React.PropTypes.bool.isRequired,
@@ -35,11 +35,18 @@ define([
         },
 
         getInitialState: function () {
-            return getState();
+            var state = getState();
+            state.width  = 0;
+            state.height = 0;
+            return state;
         },
 
-        getThisElementNode: function() {
-            return this.getDOMNode();
+        onWindowResize: function() {
+          var domNode = this.getDOMNode();
+          this.setState({
+            width: domNode.clientWidth,
+            height: domNode.clientHeight
+          });
         },
 
         componentDidMount: function() {
@@ -53,9 +60,11 @@ define([
                 nyan_cat_animation: this._onNyanAnim
             });
             GameSettingsStore.addChangeListener(this._onChange);
+            window.addEventListener('resize', this.onWindowResize);
 
-            if(this.state.graphMode === 'graphics')
-                GraphicDisplay.startRendering(this.refs.canvas.getDOMNode(), this.getThisElementNode);
+            // Call the resize handler once to setup the initial geometry of the
+            // canvas displays.
+            this.onWindowResize();
         },
 
         componentWillUnmount: function() {
@@ -69,29 +78,12 @@ define([
                 nyan_cat_animation: this._onNyanAnim
             });
             GameSettingsStore.removeChangeListener(this._onChange);
-
-            if(this.state.graphMode === 'graphics')
-                GraphicDisplay.stopRendering();
+            window.removeEventListener('resize', this.onWindowResize);
         },
 
         _onChange: function() {
-            var state = getState();
-
-            if(this.state.graphMode !== state.graphMode) {
-                if(this.state.graphMode === 'text')
-                    GraphicDisplay.startRendering(this.refs.canvas.getDOMNode(), this.getThisElementNode);
-                else
-                    GraphicDisplay.stopRendering();
-            }
-
             if(this.isMounted())
-                this.setState(state);
-        },
-
-        componentDidUpdate: function(prevProps, prevState) {
-            //Detect changes on the controls size to trigger a window resize to resize the canvas of the graphics display
-              if(this.state.graphMode === 'graphics' &&  this.state.controlsSize !== prevState.controlsSize)
-                    GraphicDisplay.onWindowResize();
+                this.setState(getState());
         },
 
         _onNyanAnim: function() {
@@ -99,9 +91,9 @@ define([
         },
 
         render: function() {
-            var textDisplay = (this.state.graphMode === 'text')?
-                TextDisplay() :
-                null;
+            var display = (this.state.graphMode === 'text')?
+                  TextDisplay() :
+                  GraphicDisplay(_.pick(this.state, ['width', 'height']));
 
             //Connection message
             var connectionMessage;
@@ -125,12 +117,11 @@ define([
                 D.div({ className: 'max-profit' },
                     'Max profit: ', (this.state.maxWin/1e8).toFixed(4), ' BTC'
                 ),
-                D.canvas({ ref: 'canvas', className: ((this.state.graphMode === 'text')? 'hide': '') }),
-                textDisplay,
+                display,
                 D.div({ className: 'connection-state' },
                     connectionMessage
                 )
-            )
+            );
         }
     });
 });

@@ -1,41 +1,38 @@
 /**
- * The code that renders the canvas, its life cycle is managed by Chart.js
+ * The code that renders the canvas.
  */
 
 define([
+    'react',
     'stores/GameSettingsStore',
     'game-logic/clib',
     'game-logic/stateLib',
     'lodash',
     'game-logic/GameEngineStore'
 ], function(
+    React,
     GameSettingsStore,
     Clib,
     StateLib,
     _,
     Engine
 ){
+    var D = React.DOM;
 
     function Graph() {
         this.rendering = false;
         this.animRequest = null;
-        this.getParentNodeFunc = null;
 
-        this.onWindowResizeBinded = this.onWindowResize.bind(this);
         this.onChangeBinded = this.onChange.bind(this);
     }
 
-    Graph.prototype.startRendering = function(canvasNode, getParentNodeFunc) {
+    Graph.prototype.startRendering = function(canvasNode) {
         this.rendering = true;
-        this.getParentNodeFunc = getParentNodeFunc;
 
         if (!canvasNode.getContext)
             return console.error('No canvas');
 
         this.ctx = canvasNode.getContext('2d');
-        var parentNode = this.getParentNodeFunc();
-        this.canvasWidth = parentNode.clientWidth;
-        this.canvasHeight = parentNode.clientHeight;
         this.canvas = canvasNode;
         this.theme = GameSettingsStore.getCurrentTheme();
         this.configPlotSettings();
@@ -43,14 +40,12 @@ define([
         this.animRequest = window.requestAnimationFrame(this.render.bind(this));
 
         GameSettingsStore.on('all', this.onChangeBinded);
-        window.addEventListener('resize', this.onWindowResizeBinded);
     };
 
     Graph.prototype.stopRendering = function() {
         this.rendering = false;
 
         GameSettingsStore.off('all', this.onChangeBinded);
-        window.removeEventListener('resize', this.onWindowResizeBinded);
     };
 
     Graph.prototype.onChange = function() {
@@ -71,17 +66,9 @@ define([
         this.animRequest = window.requestAnimationFrame(this.render.bind(this));
     };
 
-    /** On windows resize adjust the canvas size to the canvas parent size */
-    Graph.prototype.onWindowResize = function() {
-        var parentNode = this.getParentNodeFunc();
-        this.canvasWidth = parentNode.clientWidth;
-        this.canvasHeight = parentNode.clientHeight;
-        this.configPlotSettings();
-    };
-
     Graph.prototype.configPlotSettings = function() {
-        this.canvas.width = this.canvasWidth;
-        this.canvas.height = this.canvasHeight;
+        this.canvasWidth = this.canvas.width;
+        this.canvasHeight = this.canvas.height;
         this.themeWhite = (this.theme === 'white');
         this.plotWidth = this.canvasWidth - 30;
         this.plotHeight = this.canvasHeight - 20; //280
@@ -298,5 +285,32 @@ define([
 
     };
 
-    return Graph;
+    return React.createClass({
+        displayName: 'GraphicsDisplay',
+        propTypes: {
+            width: React.PropTypes.number.isRequired,
+            height: React.PropTypes.number.isRequired,
+        },
+
+        graph: new Graph(),
+
+        componentDidMount: function() {
+            this.graph.startRendering(this.getDOMNode());
+        },
+
+        componentWillUnmount: function() {
+            this.graph.stopRendering();
+        },
+
+        componentDidUpdate: function() {
+            this.graph.configPlotSettings();
+        },
+
+        render: function() {
+            return D.canvas({
+                width: this.props.width,
+                height: this.props.height
+            });
+        }
+    });
 });
