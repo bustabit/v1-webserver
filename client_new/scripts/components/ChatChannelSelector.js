@@ -84,11 +84,15 @@ define([
             return D.div({ id: 'chat-channel-selector', className: 'noselect', onClick: this._toggleShowingChans },
                 D.img({ src: 'img/flags/' + this.props.selectedChannel + '.png' }),
                 D.i({ className: this.state.showingChans? 'fa fa-caret-down' : 'fa fa-caret-up' }),
-                ReactCSSTransitionGroup({ transitionName: 'flags', key: 'flags-cont' },
-                    this.state.showingChans?
-                        D.div({ className: 'flags-container' },
-                            flagRows
-                        ) : null
+                ReactCSSTransitionGroup({
+                    key: 'flags-cont',
+                    transitionName: 'flags',
+                    transitionEnterTimeout: 400,
+                    transitionLeaveTimeout: 200
+                }, this.state.showingChans?
+                       D.div({ className: 'flags-container' },
+                           flagRows
+                       ) : null
                 ),
                 this.state.showFlagHoverName ? D.span({ className: 'flags-popover', style: { top: this.state.popoverPosition.y + 28, left: this.state.popoverPosition.x }}, this.state.showFlagHoverName) : null
             );
