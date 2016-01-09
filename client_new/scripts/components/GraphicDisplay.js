@@ -4,12 +4,14 @@
 
 define([
     'react',
+    'react-dom',
     'game-logic/clib',
     'game-logic/stateLib',
     'lodash',
     'game-logic/GameEngineStore'
 ], function(
     React,
+    ReactDOM,
     Clib,
     StateLib,
     _,
@@ -282,7 +284,7 @@ define([
         graph: new Graph(),
 
         componentDidMount: function() {
-            this.graph.startRendering(this.getDOMNode(), this.props);
+            this.graph.startRendering(ReactDOM.findDOMNode(this), this.props);
         },
 
         componentWillUnmount: function() {

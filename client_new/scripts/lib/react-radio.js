@@ -1,8 +1,10 @@
 define([
     'react',
+    'react-dom',
     'lodash'
 ], function(
     React,
+    ReactDOM,
     _
 ){
 
@@ -58,7 +60,7 @@ define([
         },
 
         getRadios: function() {
-            return this.getDOMNode().querySelectorAll('input[type="radio"]');
+            return ReactDOM.findDOMNode(this).querySelectorAll('input[type="radio"]');
         },
 
         render: function() {

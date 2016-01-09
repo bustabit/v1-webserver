@@ -50,27 +50,27 @@ define([
         },
 
         updateBetAmount: function() {
-            var amount = this.refs.bet_amount.getDOMNode().value;
+            var amount = this.refs.bet_amount.value;
             this.props.StrategyEditorActions.setWidgetState('baseBet', amount);
         },
 
         updateAutoCashAt: function() {
-            var amount = this.refs.auto_cash_at.getDOMNode().value;
+            var amount = this.refs.auto_cash_at.value;
             this.props.StrategyEditorActions.setWidgetState('autoCashAt', amount);
         },
 
         updateOnLossQty: function() {
-            var amount = this.refs.onLossQty.getDOMNode().value;
+            var amount = this.refs.onLossQty.value;
             this.props.StrategyEditorActions.setWidgetState('onLossIncreaseQty', amount);
         },
 
         updateOnWinQty: function() {
-            var amount = this.refs.onWinQty.getDOMNode().value;
+            var amount = this.refs.onWinQty.value;
             this.props.StrategyEditorActions.setWidgetState('onWinIncreaseQty', amount);
         },
 
         updateMaxBetStop: function() {
-            var amount = this.refs.max_bet_stop.getDOMNode().value;
+            var amount = this.refs.max_bet_stop.value;
             this.props.StrategyEditorActions.setWidgetState('maxBetStop', amount);
         },
 

@@ -61,12 +61,12 @@ define([
         },
 
         _updateScript: function() {
-            var script = this.refs.input.getDOMNode().value;
+            var script = this.refs.input.value;
             StrategyEditorActions.updateScript(script);
         },
 
         _selectStrategy: function() {
-            var strategyName = this.refs.strategies.getDOMNode().value;
+            var strategyName = this.refs.strategies.value;
             StrategyEditorActions.selectStrategy(strategyName);
         },
 

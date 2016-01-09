@@ -1,9 +1,11 @@
 define([
     'react',
+    'react-dom',
     'components/Game',
     'mousetrap'
 ], function(
     React,
+    ReactDOM,
     GameClass,
     Mousetrap
 ) {
@@ -21,7 +23,7 @@ define([
         }
     });
 
-    React.render(
+    ReactDOM.render(
         Game(),
         document.getElementById('game-container')
     );

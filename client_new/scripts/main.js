@@ -5,6 +5,7 @@ requirejs.config({
         classnames: '../../node_modules/classnames/index',
         lodash: '../../node_modules/lodash/index',
         react: '../../node_modules/react/dist/react-with-addons',
+        'react-dom': '../../node_modules/react-dom/dist/react-dom',
         seedrandom: '../../node_modules/seedrandom/seedrandom',
         socketio: '../../node_modules/socket.io-client/socket.io',
         mousetrap: '../../node_modules/mousetrap/mousetrap',
