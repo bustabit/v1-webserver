@@ -11,7 +11,8 @@ define([
     var D = React.DOM;
 
     return React.createClass({
-        displayName: 'payout',
+        displayName: 'Payout',
+        mixins: [React.addons.PureRenderMixin],
 
         propTypes: {
             engine: React.PropTypes.object.isRequired

@@ -17,6 +17,7 @@ define([
 
     return React.createClass({
         displayName: 'BetButton',
+        mixins: [React.addons.PureRenderMixin],
 
         propTypes: {
             engine: React.PropTypes.object.isRequired,
@@ -27,13 +28,19 @@ define([
             betSize: React.PropTypes.string.isRequired,
             betInvalid: React.PropTypes.any.isRequired,
             cashOutInvalid: React.PropTypes.any.isRequired,
-            controlsSize: React.PropTypes.string.isRequired
+            controlsSize: React.PropTypes.string.isRequired,
+            gameState: React.PropTypes.string.isRequired,
+            placingBet: React.PropTypes.bool.isRequired,
+            cashingOut: React.PropTypes.bool.isRequired,
+            balanceSatoshis:React.PropTypes.number.isRequired,
+            notPlaying: React.PropTypes.bool.isRequired,
+            isBetting: React.PropTypes.bool.isRequired
         },
 
         getInitialState: function() {
             return {
                 initialDisable: true
-            }
+            };
         },
 
         componentDidMount: function() {
@@ -73,25 +80,22 @@ define([
 
             var smallButton = this.props.isMobileOrSmall || this.props.controlsSize === 'small';
 
-            var notPlaying = StateLib.notPlaying(this.props.engine);
-            var isBetting = StateLib.isBetting(this.props.engine);
-
             // Able to bet, or is already betting
-            var notPlayingOrBetting = notPlaying || isBetting;
+            var notPlayingOrBetting = this.props.notPlaying || this.props.isBetting;
 
-            var canUserBet = StateLib.canUserBet(this.props.engine.balanceSatoshis, this.props.betSize, this.props.betInvalid, this.props.cashOutInvalid);
-            var invalidBet = canUserBet instanceof Error; 
+            var canUserBet = StateLib.canUserBet(this.props.balanceSatoshis, this.props.betSize, this.props.betInvalid, this.props.cashOutInvalid);
+            var invalidBet = canUserBet instanceof Error;
 
             var btnClasses, btnContent = [], onClickFun = null, onMouseDownFun = null, onMouseUpFun = null;
             btnClasses = 'bet-button';
 
             if(notPlayingOrBetting) {
                 //Betting
-                if(isBetting) {
+                if(this.props.isBetting) {
                     btnClasses += ' disable';
 
                     //Can cancel
-                    if (this.props.engine.gameState !== 'STARTING') {
+                    if (this.props.gameState !== 'STARTING') {
                         btnContent.push(D.span({ key: 'bc-0'}, smallButton? '' : 'Betting...'), D.a({ className: 'cancel', key: 'bc-1' }, ' (Cancel)'));
                         onClickFun = this.props.cancelBet;
                         btnClasses += ' cancel';
@@ -106,7 +110,7 @@ define([
                     btnClasses += ' disable unselect';
 
                     //Able to betting
-                } else if(notPlaying) {
+                } else if(this.props.notPlaying) {
 
                     //Invalid bet
                     if(invalidBet) {
@@ -117,7 +121,7 @@ define([
                         btnClasses += ' invalid-bet unselect';
 
                     //Placing bet
-                    } else if(this.props.engine.placingBet) {
+                    } else if(this.props.placingBet) {
                         btnContent.push(D.span({ key: 'bc-4' }, smallButton? 'Bet' : 'Place bet'));
                         btnClasses += ' disable unselect';
 
@@ -147,7 +151,7 @@ define([
                 );
 
                 //Cashing out
-                if (this.props.engine.cashingOut) {
+                if (this.props.cashingOut) {
                     btnClasses += ' disable';
 
                 //Able to cash out

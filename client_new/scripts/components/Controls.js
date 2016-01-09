@@ -27,12 +27,25 @@ define([
             betInvalid: ControlsStore.getBetInvalid(), //false || string error message
             cashOut: ControlsStore.getCashOut(),
             cashOutInvalid: ControlsStore.getCashOutInvalid(), //false || string error message
+            isPlayingOrBetting:
+              StateLib.isBetting(Engine) ||
+              (Engine.gameState === 'IN_PROGRESS' && StateLib.currentlyPlaying(Engine)),
+            connectionState: Engine.connectionState,
+            gameState: Engine.gameState,
+            balanceSatoshis: Engine.balanceSatoshis,
+            placingBet: Engine.placingBet,
+            cashingOut: Engine.cashingOut,
+            username: Engine.username,
+            balanceSatoshis: Engine.balanceSatoshis,
+            notPlaying: StateLib.notPlaying(Engine),
+            isBetting: StateLib.isBetting(Engine),
             engine: Engine
-        }
+        };
     }
 
     return React.createClass({
         displayName: 'Controls',
+        mixins: [React.addons.PureRenderMixin],
 
         propTypes: {
             isMobileOrSmall: React.PropTypes.bool.isRequired,
@@ -111,10 +124,8 @@ define([
         render: function () {
             var self = this;
 
-            var isPlayingOrBetting =  StateLib.isBetting(Engine) || (Engine.gameState === 'IN_PROGRESS' && StateLib.currentlyPlaying(Engine));
-
             //If the game is not connected
-            if(Engine.connectionState !== 'JOINED')
+            if (self.state.connectionState !== 'JOINED')
                 return D.div({ id: 'controls-inner-container' },
                     D.div({ className: 'login-button-container' },
                         D.button({ className: 'login-button bet-button' }, '...')
@@ -122,7 +133,7 @@ define([
                 );
 
             // If they're not logged in, let just show a login to play
-            if (!Engine.username)
+            if (!self.state.username)
                 return D.div({ id: 'controls-inner-container' },
                     D.div({ className: 'login-button-container' },
                         D.button({ className: 'login-button bet-button', onClick: this._redirectToLogin }, 'Login to play')
@@ -142,7 +153,7 @@ define([
                         type: 'text',
                         name: 'bet-size',
                         value: self.state.betSize,
-                        disabled: isPlayingOrBetting,
+                        disabled: self.state.isPlayingOrBetting,
                         onChange: function (e) {
                             self._setBetSize(e.target.value);
                         }
@@ -160,7 +171,7 @@ define([
                         value: self.state.cashOut,
                         type: 'number',
                         name: 'cash-out',
-                        disabled: isPlayingOrBetting,
+                        disabled: self.state.isPlayingOrBetting,
                         onChange: function (e) {
                             self._setAutoCashOut(e.target.value);
                         }
@@ -208,7 +219,13 @@ define([
                         betSize: this.state.betSize,
                         betInvalid: this.state.betInvalid,
                         cashOutInvalid: this.state.cashOutInvalid,
-                        controlsSize: this.props.controlsSize
+                        controlsSize: this.props.controlsSize,
+                        gameState: this.state.gameState,
+                        placingBet: this.state.placingBet,
+                        cashingOut: this.state.cashingOut,
+                        balanceSatoshis: this.state.balanceSatoshis,
+                        notPlaying: this.state.notPlaying,
+                        isBetting: this.state.isBetting
                     })
                 )
 

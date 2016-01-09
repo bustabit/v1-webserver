@@ -18,12 +18,14 @@ define([
     function getState() {
         return {
             balanceBitsFormatted: Clib.formatSatoshis(Engine.balanceSatoshis),
+            username: Engine.username,
             theme: GameSettingsStore.getCurrentTheme()//black || white
-        }
+        };
     }
 
     return React.createClass({
         displayName: 'TopBar',
+        mixins: [React.addons.PureRenderMixin],
 
         propTypes: {
             isMobileOrSmall: React.PropTypes.bool.isRequired
@@ -72,14 +74,14 @@ define([
         render: function() {
 
             var userLogin;
-            if(Engine.username) {
+            if (this.state.username) {
                 userLogin = D.div({ className: 'user-login' },
                     D.div({ className: 'balance-bits' },
                         D.span(null, 'Bits: '),
                         D.span({ className: 'balance' }, this.state.balanceBitsFormatted )
                     ),
                     D.div({ className: 'username' },
-                        D.a({ href: '/account'}, Engine.username
+                        D.a({ href: '/account'}, this.state.username
                     ))
                 );
             } else {
