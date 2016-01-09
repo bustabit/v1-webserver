@@ -651,7 +651,7 @@ exports.makeTransfer = function(uid, fromUserId, toUsername, satoshis, callback)
 
 };
 
-exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
+exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, fp, callback) {
     assert(typeof userId === 'number');
     assert(typeof satoshis === 'number');
     assert(typeof withdrawalAddress === 'string');
@@ -667,9 +667,9 @@ exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawa
             if (response.rowCount !== 1)
                 return callback(new Error('Unexpected withdrawal row count: \n' + response));
 
-            client.query('INSERT INTO fundings(user_id, amount, bitcoin_withdrawal_address, withdrawal_id) ' +
-                "VALUES($1, $2, $3, $4) RETURNING id",
-                [userId, -1 * satoshis, withdrawalAddress, withdrawalId],
+            client.query('INSERT INTO fundings(user_id, amount, bitcoin_withdrawal_address, withdrawal_id, withdrawal_fp) ' +
+                "VALUES($1, $2, $3, $4, $5) RETURNING id",
+                [userId, -1 * satoshis, withdrawalAddress, withdrawalId, fp],
                 function(err, response) {
                     if (err) return callback(err);
 

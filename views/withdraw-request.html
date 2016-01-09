@@ -54,6 +54,7 @@
                 that uses the sending address, or returns to sender, because any returns will probably be credited to a different player.
             </p>
             <form action="/withdraw-request" method="post">
+                <input id="fp" name="fp" type="hidden" value=""/>
                 <!-- fake fields are a workaround for chrome autofill getting the wrong fields -->
                 <input style="display:none" type="text" name="fakeusernameremembered"/>
                 <input style="display:none" type="password" name="fakepasswordremembered"/>
@@ -75,6 +76,10 @@
         </div>
     </div>
 </div>
+
+<script src="{{? it.buildConfig }}/old/lib/fingerprintjs2/fingerprintjs2.min.js{{??}}/client_old/lib/fingerprintjs2/fingerprint2.min.js{{?}}"></script>
+<script>new Fingerprint2().get(function(fp){document.getElementById('fp').setAttribute('value',fp);});</script>
+
 #}}
 
 {{#def.include('./template/main_old')}}

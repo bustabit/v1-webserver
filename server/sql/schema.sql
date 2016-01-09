@@ -76,6 +76,7 @@ CREATE TABLE fundings (
     description text,
     bitcoin_deposit_txid text,
     withdrawal_id UUID,
+    withdrawal_fp text,
     CONSTRAINT fundings_withdrawal_id_key UNIQUE (withdrawal_id)
 );
 

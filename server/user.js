@@ -779,6 +779,7 @@ exports.handleWithdrawRequest = function(req, res, next) {
     var withdrawalId = lib.removeNullsAndTrim(req.body.withdrawal_id);
     var password = lib.removeNullsAndTrim(req.body.password);
     var otp = lib.removeNullsAndTrim(req.body.otp);
+    var fp = lib.removeNullsAndTrim(req.body.fp);
 
     var r =  /^[1-9]\d*(\.\d{0,2})?$/;
     if (!r.test(amount))
@@ -820,7 +821,7 @@ exports.handleWithdrawRequest = function(req, res, next) {
             return next(new Error('Unable to validate user handling withdrawal: \n' + err));
         }
 
-        withdraw(req.user.id, amount, destination, withdrawalId, function(err) {
+        withdraw(req.user.id, amount, destination, withdrawalId, fp, function(err) {
             if (err) {
                 if (err === 'NOT_ENOUGH_MONEY')
                     return res.render('withdraw-request', { user: user, id: uuid.v4(), warning: 'Not enough money to process withdraw.' });
