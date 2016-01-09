@@ -97,7 +97,9 @@ exports.login = function(req, res, next) {
             if (err === 'NO_USER')
                 return res.render('login',{ warning: 'Username does not exist' });
             if (err === 'WRONG_PASSWORD') {
+                assert(userId);
                 console.log('Wrong password for: ', username, ' was ', password, ' and ua: ', userAgent, ' and fp: ', fp, ' and ip ', ipAddress);
+                database.logFailedLogin(userId, ipAddress, userAgent, fp);
                 return res.render('login', {warning: 'Invalid password'});
             }
             if (err === 'INVALID_OTP') {

@@ -39,6 +39,38 @@ ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
 
+
+-- Failed logins
+
+CREATE TABLE failedlogins (
+  id bigint NOT NULL PRIMARY KEY,
+  user_id bigint NOT NULL,
+  --password text NOT NULL,
+  ip_address inet NOT NULL,
+  user_agent text,
+  fingerprint text,
+  created timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE SEQUENCE failedlogins_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+ALTER SEQUENCE failedlogins_id_seq OWNED BY failedlogins.id;
+ALTER TABLE ONLY failedlogins ALTER COLUMN id SET DEFAULT nextval('failedlogins_id_seq'::regclass);
+
+ALTER TABLE ONLY failedlogins
+  ADD CONSTRAINT failedlogins_user_id_fkey
+  FOREIGN KEY (user_id)
+  REFERENCES users(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+-- CREATE INDEX failedlogins_fingerprint_idx ON failedlogins USING btree (fingerprint);
+
+
 -- Transfers (Tips)
 CREATE TABLE transfers (
   id uuid NOT NULL PRIMARY KEY,

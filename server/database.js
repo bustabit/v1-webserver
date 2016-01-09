@@ -169,6 +169,16 @@ exports.updateMfa = function(userId, secret, callback) {
     query('UPDATE users SET mfa_secret = $1 WHERE id = $2', [secret, userId], callback);
 };
 
+exports.logFailedLogin = function(userId, ipAddress, userAgent, fingerprint, callback) {
+    assert(userId);
+    query(
+      'INSERT INTO failedlogins(user_id, ip_address, user_agent, fingerprint)' +
+      ' VALUES($1, $2, $3, $4)',
+      [userId, ipAddress, userAgent, fingerprint],
+      callback || function() {}
+    );
+};
+
 // Possible errors:
 //   NO_USER, WRONG_PASSWORD, INVALID_OTP
 exports.validateUser = function(username, password, otp, callback) {
@@ -184,7 +194,7 @@ exports.validateUser = function(username, password, otp, callback) {
 
         var verified = passwordHash.verify(password, user.password);
         if (!verified)
-            return callback('WRONG_PASSWORD');
+            return callback('WRONG_PASSWORD', user.id);
 
         if (user.mfa_secret) {
             if (!otp) return callback('INVALID_OTP'); // really, just needs one
@@ -192,7 +202,7 @@ exports.validateUser = function(username, password, otp, callback) {
             var expected = speakeasy.totp({ key: user.mfa_secret, encoding: 'base32' });
 
             if (otp !== expected)
-                return callback('INVALID_OTP');
+                return callback('INVALID_OTP', user.id);
         }
 
         callback(null, user.id);
