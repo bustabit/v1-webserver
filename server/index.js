@@ -11,6 +11,8 @@ var socketIO = require('socket.io');
 var ioCookieParser = require('socket.io-cookie');
 var _ = require('lodash');
 var debug = require('debug')('app:index');
+var morgan = require('morgan');
+
 var app = express();
 
 var config = require('../config/config');
@@ -75,6 +77,8 @@ app.use(bodyParser());
 app.use(cookieParser());
 app.use(compression());
 
+app.use(morgan('common'));
+
 
 /** App settings **/
 app.set("view engine", "html");
@@ -91,6 +95,8 @@ if(config.PRODUCTION) {
     app.use('/client_old', express.static(path.join(__dirname, '../client_old'), { maxAge: twoWeeksInSeconds * 1000 }));
     app.use('/node_modules', express.static(path.join(__dirname, '../node_modules'), { maxAge: twoWeeksInSeconds * 1000 }));
 }
+
+
 
 
 /** Login middleware
