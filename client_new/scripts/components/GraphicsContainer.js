@@ -1,34 +1,33 @@
 define([
     'react',
     'lodash',
-    'game-logic/clib',
     'components/GraphicDisplay',
     'components/TextDisplay',
     'game-logic/GameEngineStore',
-    'stores/ChartStore',
     'stores/GameSettingsStore'
 ], function(
     React,
     _,
-    Clib,
     GraphicDisplayClass,
     TextDisplayClass,
     GameEngineStore,
-    ChartStore,
     GameSettingsStore
 ){
 
     var D = React.DOM;
 
-    var GraphicDisplay = new GraphicDisplayClass();
+    var GraphicDisplay = React.createFactory(GraphicDisplayClass);
     var TextDisplay = React.createFactory(TextDisplayClass);
 
     function getState(){
-        return _.merge({}, ChartStore.getState(), GameSettingsStore.getState());
+        return _.merge(
+            _.pick(GameSettingsStore.getState(), ['graphMode', 'currentTheme']),
+            _.pick(GameEngineStore, ['nyan', 'connectionState', 'maxWin'])
+        );
     }
 
     return React.createClass({
-        displayName: 'Chart',
+        displayName: 'GraphicsContainer',
 
         propTypes: {
             isMobileOrSmall: React.PropTypes.bool.isRequired,
@@ -37,12 +36,17 @@ define([
 
         getInitialState: function () {
             var state = getState();
-            state.nyan = false;
+            state.width  = 0;
+            state.height = 0;
             return state;
         },
 
-        getThisElementNode: function() {
-            return this.getDOMNode();
+        onWindowResize: function() {
+          var domNode = this.getDOMNode();
+          this.setState(_.merge(getState(), {
+            width: domNode.clientWidth,
+            height: domNode.clientHeight
+          }));
         },
 
         componentDidMount: function() {
@@ -56,9 +60,11 @@ define([
                 nyan_cat_animation: this._onNyanAnim
             });
             GameSettingsStore.addChangeListener(this._onChange);
+            window.addEventListener('resize', this.onWindowResize);
 
-            if(this.state.graphMode === 'graphics')
-                GraphicDisplay.startRendering(this.refs.canvas.getDOMNode(), this.getThisElementNode);
+            // Call the resize handler once to setup the initial geometry of the
+            // canvas displays.
+            this.onWindowResize();
         },
 
         componentWillUnmount: function() {
@@ -72,32 +78,19 @@ define([
                 nyan_cat_animation: this._onNyanAnim
             });
             GameSettingsStore.removeChangeListener(this._onChange);
-
-            if(this.state.graphMode === 'graphics')
-                GraphicDisplay.stopRendering();
+            window.removeEventListener('resize', this.onWindowResize);
         },
 
         _onChange: function() {
-            if(this.state.nyan === true && GameEngineStore.gameState !== 'IN_PROGRESS')
-                this.setState({ nyan: false });
-
-            var state = getState();
-
-            if(this.state.graphMode !== state.graphMode) {
-                if(this.state.graphMode === 'text')
-                    GraphicDisplay.startRendering(this.refs.canvas.getDOMNode(), this.getThisElementNode);
-                else
-                    GraphicDisplay.stopRendering();
-            }
-
             if(this.isMounted())
-                this.setState(state);
+                this.setState(getState());
         },
 
         componentDidUpdate: function(prevProps, prevState) {
-            //Detect changes on the controls size to trigger a window resize to resize the canvas of the graphics display
-              if(this.state.graphMode === 'graphics' &&  this.state.controlsSize !== prevState.controlsSize)
-                    GraphicDisplay.onWindowResize();
+            // Detect changes on the controls size to trigger a window resize to
+            // resize the canvas of the graphics display.
+            if(this.props.controlsSize !== prevProps.controlsSize)
+                this.onWindowResize();
         },
 
         _onNyanAnim: function() {
@@ -105,13 +98,13 @@ define([
         },
 
         render: function() {
-            var textDisplay = (this.state.graphMode === 'text')?
-                TextDisplay() :
-                null;
+            var display = (this.state.graphMode === 'text')?
+                  TextDisplay() :
+                  GraphicDisplay(_.pick(this.state, ['currentTheme', 'width', 'height']));
 
             //Connection message
             var connectionMessage;
-            switch(GameEngineStore.connectionState) {
+            switch(this.state.connectionState) {
                 case 'CONNECTING':
                     connectionMessage = 'Connecting...';
                     break;
@@ -129,14 +122,13 @@ define([
                     )
                 ),
                 D.div({ className: 'max-profit' },
-                    'Max profit: ', (GameEngineStore.maxWin/1e8).toFixed(4), ' BTC'
+                    'Max profit: ', (this.state.maxWin/1e8).toFixed(4), ' BTC'
                 ),
-                D.canvas({ ref: 'canvas', className: ((this.state.graphMode === 'text')? 'hide': '') }),
-                textDisplay,
+                display,
                 D.div({ className: 'connection-state' },
                     connectionMessage
                 )
-            )
+            );
         }
     });
 });

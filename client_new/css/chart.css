@@ -50,10 +50,6 @@
      line-height: 3rem;
 }
 
-#chart-inner-container canvas.hide {
-    display: none;
-}
-
 /** Small screen and small controls **/
 @media handheld, only screen and (max-width: 767px) {
     #chart-inner-container.small .max-profit {
