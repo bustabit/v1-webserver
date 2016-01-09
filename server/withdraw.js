@@ -5,14 +5,14 @@ var request = require('request');
 var config = require('../config/config');
 
 // Doesn't validate
-module.exports = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
+module.exports = function(userId, satoshis, withdrawalAddress, withdrawalId, fp, callback) {
     var minWithdraw = config.MINING_FEE + 100;
     assert(typeof userId === 'number');
     assert(satoshis >= minWithdraw);
     assert(typeof withdrawalAddress === 'string');
     assert(typeof callback === 'function');
 
-    db.makeWithdrawal(userId, satoshis, withdrawalAddress, withdrawalId, function (err, fundingId) {
+    db.makeWithdrawal(userId, satoshis, withdrawalAddress, withdrawalId, fp, function (err, fundingId) {
         if (err) {
             if (err.code === '23514')
                 callback('NOT_ENOUGH_MONEY');

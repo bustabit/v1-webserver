@@ -106,7 +106,7 @@ function getClient(runner, callback) {
 }
 
 //Returns a sessionId
-exports.createUser = function(username, password, email, ipAddress, userAgent, callback) {
+exports.createUser = function(username, password, email, ipAddress, userAgent, fp, callback) {
     assert(username && password);
 
     getClient(
@@ -133,7 +133,7 @@ exports.createUser = function(username, password, email, ipAddress, userAgent, c
                                 assert(data.rows.length === 1);
                                 var user = data.rows[0];
 
-                                createSession(client, user.id, ipAddress, userAgent, false, callback);
+                                createSession(client, user.id, ipAddress, userAgent, false, fp, callback);
                             }
                         );
 
@@ -169,6 +169,16 @@ exports.updateMfa = function(userId, secret, callback) {
     query('UPDATE users SET mfa_secret = $1 WHERE id = $2', [secret, userId], callback);
 };
 
+exports.logFailedLogin = function(userId, ipAddress, userAgent, fingerprint, callback) {
+    assert(userId);
+    query(
+      'INSERT INTO failedlogins(user_id, ip_address, user_agent, fingerprint)' +
+      ' VALUES($1, $2, $3, $4)',
+      [userId, ipAddress, userAgent, fingerprint],
+      callback || function() {}
+    );
+};
+
 // Possible errors:
 //   NO_USER, WRONG_PASSWORD, INVALID_OTP
 exports.validateUser = function(username, password, otp, callback) {
@@ -184,7 +194,7 @@ exports.validateUser = function(username, password, otp, callback) {
 
         var verified = passwordHash.verify(password, user.password);
         if (!verified)
-            return callback('WRONG_PASSWORD');
+            return callback('WRONG_PASSWORD', user.id);
 
         if (user.mfa_secret) {
             if (!otp) return callback('INVALID_OTP'); // really, just needs one
@@ -192,7 +202,7 @@ exports.validateUser = function(username, password, otp, callback) {
             var expected = speakeasy.totp({ key: user.mfa_secret, encoding: 'base32' });
 
             if (otp !== expected)
-                return callback('INVALID_OTP');
+                return callback('INVALID_OTP', user.id);
         }
 
         callback(null, user.id);
@@ -207,7 +217,7 @@ exports.expireSessionsByUserId = function(userId, callback) {
 };
 
 
-function createSession(client, userId, ipAddress, userAgent, remember, callback) {
+function createSession(client, userId, ipAddress, userAgent, remember, fp, callback) {
     var sessionId = uuid.v4();
 
     var expired = new Date();
@@ -216,8 +226,8 @@ function createSession(client, userId, ipAddress, userAgent, remember, callback)
     else
         expired.setDate(expired.getDate() + 21);
 
-    client.query('INSERT INTO sessions(id, user_id, ip_address, user_agent, expired) VALUES($1, $2, $3, $4, $5) RETURNING id',
-        [sessionId, userId, ipAddress, userAgent, expired], function(err, res) {
+    client.query('INSERT INTO sessions(id, user_id, ip_address, user_agent, fingerprint, expired) VALUES($1, $2, $3, $4, $5, $6) RETURNING id',
+        [sessionId, userId, ipAddress, userAgent, fp, expired], function(err, res) {
         if (err) return callback(err);
         assert(res.rows.length === 1);
 
@@ -242,11 +252,11 @@ exports.createOneTimeToken = function(userId, ipAddress, userAgent, callback) {
     });
 };
 
-exports.createSession = function(userId, ipAddress, userAgent, remember, callback) {
+exports.createSession = function(userId, ipAddress, userAgent, remember, fp, callback) {
     assert(userId && callback);
 
     getClient(function(client, callback) {
-        createSession(client, userId, ipAddress, userAgent, remember, callback);
+        createSession(client, userId, ipAddress, userAgent, remember, fp, callback);
     }, callback);
 
 };
@@ -651,7 +661,7 @@ exports.makeTransfer = function(uid, fromUserId, toUsername, satoshis, callback)
 
 };
 
-exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
+exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, fp, callback) {
     assert(typeof userId === 'number');
     assert(typeof satoshis === 'number');
     assert(typeof withdrawalAddress === 'string');
@@ -667,9 +677,9 @@ exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawa
             if (response.rowCount !== 1)
                 return callback(new Error('Unexpected withdrawal row count: \n' + response));
 
-            client.query('INSERT INTO fundings(user_id, amount, bitcoin_withdrawal_address, withdrawal_id) ' +
-                "VALUES($1, $2, $3, $4) RETURNING id",
-                [userId, -1 * satoshis, withdrawalAddress, withdrawalId],
+            client.query('INSERT INTO fundings(user_id, amount, bitcoin_withdrawal_address, withdrawal_id, withdrawal_fp) ' +
+                "VALUES($1, $2, $3, $4, $5) RETURNING id",
+                [userId, -1 * satoshis, withdrawalAddress, withdrawalId, fp],
                 function(err, response) {
                     if (err) return callback(err);
 
