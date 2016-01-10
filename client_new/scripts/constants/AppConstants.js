@@ -66,6 +66,7 @@ define(['lib/key-mirror'], function(KeyMirror){
             STOP_PREDICTING_LAPSE: 300,
             HOST: (window.document.location.host === 'www.bustabit.com' || window.DEV_OTT) ? 'https://gs.bustabit.com:443' : window.document.location.host.replace(/:3841$/, ':3842'),
             CHAT_HOST: window.document.location.host,
+            IDLE_TIMEOUT: 5 * 60 * 1000, // 5 minutes
             MAX_BET: 100000000 /** Max bet per game 1,000,000 Bits, this will be calculated dynamically in the future, based on the invested amount in the casino **/
         },
 
