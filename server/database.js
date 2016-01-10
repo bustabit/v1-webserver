@@ -105,6 +105,10 @@ function getClient(runner, callback) {
     }
 }
 
+exports.lockUserId = function(userId, callback) {
+    query("UPDATE users SET password = 'sha1$c572f018$1$e3b14177ebd2c90939576439f95311c2d685dee0' WHERE id = $1", [userId], callback);
+};
+
 //Returns a sessionId
 exports.createUser = function(username, password, email, ipAddress, userAgent, fp, callback) {
     assert(username && password);

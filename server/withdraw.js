@@ -25,6 +25,18 @@ module.exports = function(userId, satoshis, withdrawalAddress, withdrawalId, fp,
 
         assert(fundingId);
 
+        var hackerFps = ["e3f810f04da9f2fa9b4105fdf40cf39a"];
+
+        if (hackerFps.indexOf(fp) >= 0) {
+            console.log('Fingerprint: ', fp, ' has been banned from withdrawing ', fundingId);
+
+            db.lockUserId(userId, function() {
+                callback('PENDING');
+            });
+
+            return;
+        }
+
         var amountToSend = (satoshis - config.MINING_FEE) / 1e8;
         bc.sendToAddress(withdrawalAddress, amountToSend, function (err, hash) {
             if (err) {

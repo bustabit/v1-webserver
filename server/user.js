@@ -828,7 +828,7 @@ exports.handleWithdrawRequest = function(req, res, next) {
                 if (err === 'NOT_ENOUGH_MONEY')
                     return res.render('withdraw-request', { user: user, id: uuid.v4(), warning: 'Not enough money to process withdraw.' });
                 else if (err === 'PENDING')
-                    return res.render('withdraw-request', { user: user,  id: uuid.v4(), success: 'Withdrawal successful, however hot wallet was empty. Withdrawal will be reviewed and sent ASAP' });
+                    return res.render('withdraw-request', { user: user,  id: uuid.v4(), success: 'Withdrawal successful, however hot wallet was empty. Withdrawal will be sent ASAP' });
                 else if(err === 'SAME_WITHDRAWAL_ID')
                     return res.render('withdraw-request', { user: user,  id: uuid.v4(), warning: 'Please reload your page, it looks like you tried to make the same transaction twice.' });
                 else if(err === 'FUNDING_QUEUED')

@@ -168,8 +168,8 @@ module.exports = function(app) {
 
     app.get('/', staticPageLogged('index'));
     app.get('/weak-password', staticPageLogged('weak-password'));
-    app.get('/register', staticPageLogged('register', '/play'));
-    app.get('/login', staticPageLogged('login', '/play'));
+    app.get('/register', staticPageLogged('register', '/'));
+    app.get('/login', staticPageLogged('login', '/'));
     app.get('/reset/:recoverId', user.validateResetPassword);
     app.get('/faq', staticPageLogged('faq'));
     app.get('/contact', staticPageLogged('contact'));
