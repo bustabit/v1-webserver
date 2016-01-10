@@ -43,12 +43,16 @@ define([
             return state;
         },
 
+        resizeAnimReq: null,
         onWindowResize: function() {
-          var domNode = ReactDOM.findDOMNode(this);
-          this.setState(_.merge(getState(), {
-            width: domNode.clientWidth,
-            height: domNode.clientHeight
-          }));
+            var self = this;
+            self.resizeAnimRequest = window.requestAnimationFrame(function(){
+                var domNode = ReactDOM.findDOMNode(self);
+                self.setState(_.merge(getState(), {
+                    width: domNode.clientWidth,
+                    height: domNode.clientHeight
+                }));
+            });
         },
 
         componentDidMount: function() {
@@ -81,6 +85,7 @@ define([
             });
             GameSettingsStore.removeChangeListener(this._onChange);
             window.removeEventListener('resize', this.onWindowResize);
+            window.cancelAnimationFrame(this.resizeAnimReq);
         },
 
         _onChange: function() {
