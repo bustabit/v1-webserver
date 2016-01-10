@@ -1,8 +1,10 @@
 define([
     'react',
+    'react-dom',
     'lodash'
 ], function(
     React,
+    ReactDOM,
     _
 ){
 
@@ -58,7 +60,7 @@ define([
         },
 
         getRadios: function() {
-            return this.getDOMNode().querySelectorAll('input[type="radio"]');
+            return ReactDOM.findDOMNode(this).querySelectorAll('input[type="radio"]');
         },
 
         render: function() {
@@ -67,23 +69,16 @@ define([
             return D.div({ onChange: this.change },
                 React.Children.map(this.props.children, function(child) {
 
+                    if (child.type !== 'input' || child.props.type !== 'radio')
+                      return child; // Render child unchanged
+
+                    // Child is an input[type="radio"] DOM element and React throws
+                    // a warning if you give it children. Make that an error here.
+                    console.assert(!child.props.children);
+
                     var newProps = { name: self.props.name };
 
-                    //Disable propagation if we send children inside the radios, the event will uncheck the radio, i don't have idea why xD
-                    if(child.props.children)
-                        React.Children.map(child.props.children, function(child) {
-
-                            if(child.props.onChange)
-                                var childrenChange = child.props.onChange;
-
-                            _.extend(child.props, { onChange: function(e) {
-                                e.stopPropagation();
-                                if(childrenChange)
-                                    childrenChange();
-                            } });
-                        });
-
-                    //If the user sends a value disable all the other options
+                    // If the user sends a value disable all the other options
                     if(self.props.value)
                         if(child.props.value !== self.props.value)
                             newProps.disabled = true;
@@ -92,11 +87,10 @@ define([
                             newProps.readOnly = true;
                         }
 
-                    //assign name to each child
-                    _.extend(child.props, newProps);
-                    return child;
+                    // Create a clone with updated props.
+                    return React.cloneElement(child, newProps);
                 })
-            )
+            );
         }
     });
 

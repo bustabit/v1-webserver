@@ -1,5 +1,6 @@
 define([
     'react',
+    'react-dom',
     'lodash',
     'components/GraphicDisplay',
     'components/TextDisplay',
@@ -7,6 +8,7 @@ define([
     'stores/GameSettingsStore'
 ], function(
     React,
+    ReactDOM,
     _,
     GraphicDisplayClass,
     TextDisplayClass,
@@ -42,7 +44,7 @@ define([
         },
 
         onWindowResize: function() {
-          var domNode = this.getDOMNode();
+          var domNode = ReactDOM.findDOMNode(this);
           this.setState(_.merge(getState(), {
             width: domNode.clientWidth,
             height: domNode.clientHeight

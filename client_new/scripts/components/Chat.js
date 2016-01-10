@@ -191,7 +191,7 @@ define([
 
             //If messages are rendered scroll down to the bottom
             if(this.refs.messages) {
-                var msgsNode = this.refs.messages.getDOMNode();
+                var msgsNode = this.refs.messages;
                 msgsNode.scrollTop = msgsNode.scrollHeight;
             }
         },
@@ -210,7 +210,7 @@ define([
 
             //On join or channel change scroll to the bottom
             if (this.state.lastEvent === 'JOINED' || this.state.lastEvent === 'CHANGED_CHANNEL') {
-                var msgsNode = this.refs.messages.getDOMNode();
+                var msgsNode = this.refs.messages;
                 msgsNode.scrollTop = msgsNode.scrollHeight;
 
             //If there is a new message scroll to the bottom if is near to it
@@ -220,7 +220,7 @@ define([
 
                 //If messages are rendered scroll down
                 if(this.refs.messages) {
-                    var msgsBox = this.refs.messages.getDOMNode();
+                    var msgsBox = this.refs.messages;
                     var scrollBottom = msgsBox.scrollHeight-msgsBox.offsetHeight-msgsBox.scrollTop;
 
                     if(scrollBottom < SCROLL_OFFSET)

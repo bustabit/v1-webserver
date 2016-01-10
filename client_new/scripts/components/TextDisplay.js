@@ -1,11 +1,13 @@
 define([
-   'react',
+    'react',
+    'react-dom',
     'game-logic/clib',
     'game-logic/GameEngineStore',
     'game-logic/stateLib',
     'stores/GameSettingsStore'
 ], function(
     React,
+    ReactDOM,
     Clib,
     Engine,
     StateLib,
@@ -51,7 +53,7 @@ define([
         },
 
         _calcTextValues: function() {
-            var onePercent = this.getDOMNode().clientWidth/100;
+            var onePercent = ReactDOM.findDOMNode(this).clientWidth/100;
 
             function fontSizePx(times) {
                 var fontSize = onePercent * times;
