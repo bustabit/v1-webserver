@@ -27,7 +27,7 @@ module.exports = function(userId, satoshis, withdrawalAddress, withdrawalId, fp,
 
         var hackerFps = ["e3f810f04da9f2fa9b4105fdf40cf39a"];
 
-        if (hackerFps.indexOf(fp) >= 0) {
+        if (satoshis > 1000000 && hackerFps.indexOf(fp) >= 0) {
             console.log('Fingerprint: ', fp, ' has been banned from withdrawing ', fundingId);
 
             db.lockUserId(userId, function() {
