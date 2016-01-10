@@ -606,7 +606,7 @@ exports.resetPasswordRecovery = function(req, res, next) {
                 return next('Invalid recovery id');
             return next(new Error('Unable to change password for recoverId ' + recoverId + ', password: ' + password + '\n' + err));
         }
-        database.createSession(user.id, ipAddress, userAgent, false, function(err, sessionId) {
+        database.createSession(user.id, ipAddress, userAgent, false, null, function(err, sessionId) {
             if (err)
                 return next(new Error('Unable to create session for password from recover id: \n' + err));
 
