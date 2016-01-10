@@ -6,6 +6,8 @@
  */
 define([
     'react',
+    'lib/idle-timer',
+    'constants/AppConstants',
     'components/TopBar',
     'components/ChartControls',
     'components/TabsSelector',
@@ -13,9 +15,13 @@ define([
     'components/BetBar',
     'game-logic/clib',
     'game-logic/hotkeys',
-    'stores/GameSettingsStore'
+    'game-logic/GameEngineStore',
+    'stores/GameSettingsStore',
+    'stores/StrategyEditorStore'
 ], function(
     React,
+    IdleTimer,
+    AppConstants,
     TopBarClass,
     ChartControlsClass,
     TabsSelectorClass,
@@ -23,7 +29,9 @@ define([
     BetBarClass,
     Clib,
     Hotkeys,
-    GameSettingsStore
+    GameEngineStore,
+    GameSettingsStore,
+    StrategyEditorStore
 ){
     var TopBar = React.createFactory(TopBarClass);
     var ChartControls = React.createFactory(ChartControlsClass);
@@ -45,16 +53,28 @@ define([
 
         componentDidMount: function() {
             GameSettingsStore.addChangeListener(this._onSettingsChange);
+            StrategyEditorStore.addChangeListener(this._onStrategyChange);
 
             window.addEventListener("resize", this._onWindowResize);
+            this._idleTimer.register();
+            this._idleTimer.on({
+              idle: this._onIdle,
+              unidle: this._onUnidle
+            });
 
             Hotkeys.mount();
         },
 
         componentWillUnmount: function() {
             GameSettingsStore.removeChangeListener(this._onSettingsChange);
+            StrategyEditorStore.removeChangeListener(this._onStrategyChange);
 
             window.removeEventListener("resize", this._onWindowResize);
+            this._idleTimer.unregister();
+            this._idleTimer.off({
+              idle: this._onIdle,
+              unidle: this._onUnidle
+            });
 
             Hotkeys.unmount();
         },
@@ -72,6 +92,24 @@ define([
 
         _hideMessage: function() {
             this.setState({ showMessage: false });
+        },
+
+        _onStrategyChange: function () {
+            this._idleTimer.setState(!StrategyEditorStore.getEditorState());
+        },
+
+        _idleTimer: IdleTimer({timeout: AppConstants.Engine.IDLE_TIMEOUT}),
+        _onIdle: function() {
+            console.log('User became idle. Disconnecting..');
+            GameEngineStore.ws.disconnect();
+        },
+
+        _onUnidle: function() {
+            console.log('User became active. Reconnecting..');
+            GameEngineStore.ws.connect();
+        },
+
+        _onRunScript: function() {
         },
 
         render: function() {
