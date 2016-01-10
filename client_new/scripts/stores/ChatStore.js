@@ -141,11 +141,11 @@ define([
       return getLocalStorageChannels();
     },
 
-    getConnectionState() {
+    getConnectionState: function() {
       return _state.get('connectionState');
     },
 
-    getCurrentChannel() {
+    getCurrentChannel: function() {
       return _state.get('currentChannel');
     },
 
