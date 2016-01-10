@@ -161,7 +161,7 @@ function errorHandler(err, req, res, next) {
             return res.render('error', { error: err });
         } else {
             if (err.stack) {
-                console.error('[INTERNAL_ERROR] ', err.stack);
+                console.error('[INTERNAL_ERROR] ', err, err.stack, req.path);
             } else console.error('[INTERNAL_ERROR', err);
 
             res.render('error');
