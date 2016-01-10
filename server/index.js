@@ -178,7 +178,7 @@ app.use(errorHandler);
 
 /**  Server **/
 var server = http.createServer(app);
-var io = socketIO(server); //Socket io must be after the last app.use
+var io = socketIO(server, config.SOCKET_IO_CONFIG); //Socket io must be after the last app.use
 io.use(ioCookieParser);
 
 /** Socket io login middleware **/

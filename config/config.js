@@ -30,5 +30,8 @@ module.exports = {
   "BITCOIND_CERT": process.env.BITCOIND_CERT  || '',
   "PORT":  process.env.PORT || 3841,
   "MINING_FEE": process.env.MINING_FEE || 10000,
-  "BUILD": prodConfig
+  "BUILD": prodConfig,
+  "SOCKET_IO_CONFIG": {
+    allowUpgrades: false // Do not upgrade transport to WS
+  }
 };
