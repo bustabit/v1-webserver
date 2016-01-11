@@ -129,12 +129,13 @@ define([
     }
 
     function Graph() {
-        this.rendering = false;
+        this.canvas      = null;
+        this.ctx         = null;
         this.animRequest = null;
     }
 
     Graph.prototype.startRendering = function(canvasNode, config) {
-        this.rendering = true;
+        console.assert(!this.canvas && !this.ctx);
 
         if (!canvasNode.getContext)
             return console.error('No canvas');
@@ -147,13 +148,11 @@ define([
     };
 
     Graph.prototype.stopRendering = function() {
-        this.rendering = false;
+        window.cancelAnimationFrame(this.animRequest);
+        this.canvas = this.ctx = null;
     };
 
     Graph.prototype.render = function() {
-        if(!this.rendering)
-            return;
-
         this.calcGameData();
         this.calculatePlotValues();
         this.clean();
