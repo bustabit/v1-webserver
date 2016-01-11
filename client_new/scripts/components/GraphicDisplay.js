@@ -19,6 +19,115 @@ define([
 ){
     var D = React.DOM;
 
+    // Styling
+    function style(theme, ratio, width) {
+      function combineTheme(obj) {
+        if (typeof obj[theme] === 'string')
+          return obj[theme];
+        else
+          return _.assign({}, obj.base, obj[theme]);
+      }
+
+      function combineState(obj) {
+        // Possible states and their inheritance graph. All derive also from base.
+        var states = {
+          playing: [],
+          cashed: [],
+          lost: [],
+          starting: [],
+          startingBetting: ['starting', 'playing'],
+          progress: [],
+          progressPlaying: ['progress', 'playing'],
+          progressCashed: ['progress', 'cashed'],
+          ended: [],
+          endedCashed: ['ended', 'cashed']
+        };
+
+        return _.mapValues(states, function(sups, state) {
+          var res = _.assign({}, obj.base || {});
+          _.forEach(sups, function(sup) {
+            _.assign(res, obj[sup] || {});
+          });
+          _.assign(res, obj[state]);
+          return res;
+        });
+      }
+
+      // Multiply one percent of canvas width x times
+      function fontSizeNum(times) {
+        return times * width / 100;
+      }
+
+      // Return the font size in pixels of one percent
+      // of the width canvas by x times.
+      function fontSizePx(times) {
+        var fontSize = fontSizeNum(times);
+        return fontSize.toFixed(2) + 'px';
+      }
+
+      var strokeStyle = combineTheme({
+        white: 'Black',
+        black: '#b0b3c1'
+      });
+
+      var fillStyle = combineTheme({
+        white: 'black',
+        black: '#b0b3c1'
+      });
+
+      return {
+        fontSizeNum: fontSizeNum,
+        fontSizePx: fontSizePx,
+        graph: combineState({
+          base: {
+            lineWidth: 4*ratio,
+            strokeStyle: strokeStyle
+          },
+          playing: {
+            lineWidth: 6*ratio,
+            strokeStyle: '#7cba00'
+          },
+          cashed: {
+            lineWidth: 6*ratio /*, strokeStyle = "Grey" */
+          }
+        }),
+        axis: {
+          lineWidth: 1 * ratio,
+          font: (10*ratio).toFixed(2) + "px Verdana",
+          textAlign: "center",
+          strokeStyle: strokeStyle,
+          fillStyle: fillStyle
+        },
+        data: combineState({
+          base: {
+            textAlign: 'center',
+            textBaseline: 'middle'
+          },
+          starting: {
+            font: fontSizePx(5) + " Verdana",
+            fillStyle: "grey"
+          },
+          progress: {
+            font: fontSizePx(20) + " Verdana",
+            fillStyle: fillStyle
+          },
+          progressPlaying: {
+            fillStyle: '#7cba00'
+          },
+          ended: {
+            font: fontSizePx(15) + " Verdana",
+            fillStyle: "red"
+          }
+        })
+      };
+
+      // if(self.lag) {
+      //     context.fillStyle = "black";
+      //     context.font="20px Verdana";
+      //     context.fillText('Network Lag', 250, 250);
+      // }
+    }
+
     function Graph() {
         this.rendering = false;
         this.animRequest = null;
@@ -86,7 +195,9 @@ define([
         this.backingStoreRatio = backingStoreRatio;
         this.ratio = devicePixelRatio / backingStoreRatio;
 
-        this.themeWhite = (config.currentTheme === 'white');
+        this.theme = config.currentTheme;
+        this.style = style(this.theme, this.ratio, this.canvasWidth);
+
         this.plotWidth = this.canvasWidth - 30*this.ratio;
         this.plotHeight = this.canvasHeight - 20*this.ratio; //280
         this.xStart = this.canvasWidth - this.plotWidth;
@@ -104,18 +215,9 @@ define([
     Graph.prototype.calculatePlotValues = function() {
 
         //Plot variables
+        this.XAxisPlotValue = Math.max(this.currentTime, this.XAxisPlotMinValue);
         this.YAxisPlotMinValue = this.YAxisSizeMultiplier;
-        this.YAxisPlotValue = this.YAxisPlotMinValue;
-
-        this.XAxisPlotValue = this.XAxisPlotMinValue;
-
-        //Adjust X Plot's Axis
-        if(this.currentTime > this.XAxisPlotMinValue)
-            this.XAxisPlotValue = this.currentTime;
-
-        //Adjust Y Plot's Axis
-        if(this.currentGamePayout > this.YAxisPlotMinValue)
-            this.YAxisPlotValue = this.currentGamePayout;
+        this.YAxisPlotValue = Math.max(this.currentGamePayout, this.YAxisPlotMinValue);
 
         //We start counting from cero to plot
         this.YAxisPlotValue-=1;
@@ -123,7 +225,6 @@ define([
         //Graph values
         this.widthIncrement = this.plotWidth / this.XAxisPlotValue;
         this.heightIncrement = this.plotHeight / (this.YAxisPlotValue);
-        this.currentX = this.currentTime * this.widthIncrement;
     };
 
     Graph.prototype.clean = function() {
@@ -132,24 +233,20 @@ define([
 
     Graph.prototype.drawGraph = function() {
 
-        /* Style the line depending on the game states */
-        this.ctx.strokeStyle = (this.themeWhite? "Black" : "#b0b3c1");
+        var style = this.style.graph;
+        var ctx = this.ctx;
 
-        //Playing and not cashed out
-        if(StateLib.currentlyPlaying(Engine)) {
-            this.ctx.lineWidth = 6*this.ratio;
-            this.ctx.strokeStyle = '#7cba00';
+        // Style the line depending on the game state.
+        _.assign(ctx,
+          // Playing and not cashed out
+          StateLib.currentlyPlaying(Engine)? style.playing :
+          // Cashing out
+          Engine.cashingOut? style.cashed :
+          // Otherwise
+          style.progress
+        );
 
-        //Cashing out
-        } else if(Engine.cashingOut) {
-            this.ctx.lineWidth = 6*this.ratio;
-            //this.ctx.strokeStyle = "Grey";
-
-        } else {
-            this.ctx.lineWidth = 4*this.ratio;
-        }
-
-        this.ctx.beginPath();
+        ctx.beginPath();
         Clib.seed(1);
 
         /* Draw the graph */
@@ -159,26 +256,26 @@ define([
             var payout = Clib.calcGamePayout(t)-1; //We start counting from one x
             var y = this.plotHeight - (payout * this.heightIncrement);
             var x = t * this.widthIncrement;
-            this.ctx.lineTo(x + this.xStart, y);
+            ctx.lineTo(x + this.xStart, y);
 
             /* Draw green line if last game won */ //TODO: Avoid doing the code above this if it will do this
             /*var realPayout = Clib.payout(this.betSize, t);
              if(this.lastGameWon && (Clib.payout(this.betSize, t) > this.lastWinnings) && !greenSetted) {
-             var tempStroke = this.ctx.strokeStyle;
-             this.ctx.strokeStyle = '#7cba00';
-             this.ctx.stroke();
+             var tempStroke = ctx.strokeStyle;
+             ctx.strokeStyle = '#7cba00';
+             ctx.stroke();
 
-             this.ctx.beginPath();
-             this.ctx.lineWidth = 3*this.ratio;
-             this.ctx.moveTo(x + this.xStart, y);
-             this.ctx.strokeStyle = tempStroke;
+             ctx.beginPath();
+             ctx.lineWidth = 3*this.ratio;
+             ctx.moveTo(x + this.xStart, y);
+             ctx.strokeStyle = tempStroke;
              greenSetted = true;
              }*/
 
             /* Avoid crashing the explorer if the cycle is infinite */
             if(i > 5000) {console.log("For 1 too long!");break;}
         }
-        this.ctx.stroke();
+        ctx.stroke();
     };
 
     Graph.prototype.drawAxes = function() {
@@ -205,22 +302,18 @@ define([
         this.YAxisPlotMaxValue = this.YAxisPlotMinValue;
         this.payoutSeparation = stepValues(!this.currentGamePayout ? 1 : this.currentGamePayout);
 
-        this.ctx.lineWidth = 1*this.ratio;
-        this.ctx.strokeStyle = (this.themeWhite? "Black" : "#b0b3c1");
-        this.ctx.font= 10*this.ratio + "px Verdana";
-        this.ctx.fillStyle = (this.themeWhite? 'black' : "#b0b3c1");
-        this.ctx.textAlign="center";
+        var ctx = this.ctx;
+        _.assign(ctx, this.style.axis);
 
         //Draw Y Axis Values
-        var heightIncrement =  this.plotHeight/(this.YAxisPlotValue);
         for(var payout = this.payoutSeparation, i = 0; payout < this.YAxisPlotValue; payout+= this.payoutSeparation, i++) {
-            var y = this.plotHeight - (payout*heightIncrement);
-            this.ctx.fillText((payout+1)+'x', 10*this.ratio, y);
+            var y = this.plotHeight - (payout*this.heightIncrement);
+            ctx.fillText((payout+1)+'x', 10*this.ratio, y);
 
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.xStart, y);
-            this.ctx.lineTo(this.xStart + 5*this.ratio, y);
-            this.ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(this.xStart, y);
+            ctx.lineTo(this.xStart + 5*this.ratio, y);
+            ctx.stroke();
 
             if(i > 100) { console.log("For 3 too long"); break; }
         }
@@ -232,78 +325,71 @@ define([
         //Draw X Axis Values
         for(var miliseconds = 0, counter = 0, i = 0; miliseconds < this.XAxisPlotValue; miliseconds+=this.milisecondsSeparation, counter++, i++) {
             var seconds = miliseconds/1000;
-            var textWidth = this.ctx.measureText(seconds).width;
+            var textWidth = ctx.measureText(seconds).width;
             var x = (counter*this.XAxisValuesSeparation) + this.xStart;
-            this.ctx.fillText(seconds, x - textWidth/2, this.plotHeight + 11*this.ratio);
+            ctx.fillText(seconds, x - textWidth/2, this.plotHeight + 11*this.ratio);
 
             if(i > 100) { console.log("For 4 too long"); break; }
         }
 
         //Draw background Axis
-        this.ctx.lineWidth = 1*this.ratio;
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.xStart, 0);
-        this.ctx.lineTo(this.xStart, this.canvasHeight - this.yStart);
-        this.ctx.lineTo(this.canvasWidth, this.canvasHeight - this.yStart);
-        this.ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(this.xStart, 0);
+        ctx.lineTo(this.xStart, this.canvasHeight - this.yStart);
+        ctx.lineTo(this.canvasWidth, this.canvasHeight - this.yStart);
+        ctx.stroke();
     };
-
 
     Graph.prototype.drawGameData = function() {
 
-        //One percent of canvas width
-        var onePercent = this.canvasWidth/100;
-        //Multiply it x times
-        function fontSizeNum(times) {
-            return onePercent * times;
-        }
-        //Return the font size in pixels of one percent of the width canvas by x times
-        function fontSizePx(times) {
-            var fontSize = fontSizeNum(times);
-            return fontSize.toFixed(2) + 'px';
-        }
+      var style = this.style.data;
+      var ctx = this.ctx;
 
-        this.ctx.textAlign="center";
-        this.ctx.textBaseline = 'middle';
+      switch (Engine.gameState) {
+      case 'STARTING':
+        var timeLeft = ((Engine.startTime - Date.now())/1000).toFixed(1);
+        _.assign(ctx, style.starting);
+        ctx.fillText(
+          'Next round in '+timeLeft+'s',
+          this.canvasWidth/2,
+          this.canvasHeight/2
+        );
+        break;
 
-        if(Engine.gameState === 'IN_PROGRESS') {
+      case 'IN_PROGRESS':
+        _.assign(ctx, StateLib.currentlyPlaying(Engine)?
+                        style.progressPlaying : style.progress);
+        ctx.fillText(
+          parseFloat(this.currentGamePayout).toFixed(2) + 'x',
+          this.canvasWidth/2,
+          this.canvasHeight/2
+        );
+        break;
 
-            if (StateLib.currentlyPlaying(Engine))
-                this.ctx.fillStyle = '#7cba00';
-            else
-                this.ctx.fillStyle = (this.themeWhite? "black" : "#b0b3c1");
+      case 'ENDED':
+        _.assign(ctx, style.ended);
+        ctx.fillText(
+          'Busted', this.canvasWidth/2,
+          this.canvasHeight/2 - this.style.fontSizeNum(15)/2
+        );
+        ctx.fillText(
+          '@ ' + Clib.formatDecimals(Engine.tableHistory[0].game_crash/100, 2) + 'x',
+          this.canvasWidth/2,
+          this.canvasHeight/2 + this.style.fontSizeNum(15)/2
+        );
+        break;
+      }
 
-            this.ctx.font = fontSizePx(20) + " Verdana";
-            this.ctx.fillText(parseFloat(this.currentGamePayout).toFixed(2) + 'x', this.canvasWidth/2, this.canvasHeight/2);
-        }
-
-        //If the engine enters in the room @ ENDED it doesn't have the crash value, so we don't display it
-        if(Engine.gameState === 'ENDED') {
-            this.ctx.font = fontSizePx(15) + " Verdana";
-            this.ctx.fillStyle = "red";
-            this.ctx.fillText('Busted', this.canvasWidth/2, this.canvasHeight/2 - fontSizeNum(15)/2);
-            this.ctx.fillText('@ ' + Clib.formatDecimals(Engine.tableHistory[0].game_crash/100, 2) + 'x', this.canvasWidth/2, this.canvasHeight/2 + fontSizeNum(15)/2);
-        }
-
-        if(Engine.gameState === 'STARTING') {
-            this.ctx.font = fontSizePx(5) + " Verdana";
-            this.ctx.fillStyle = "grey";
-
-            var timeLeft = ((Engine.startTime - Date.now())/1000).toFixed(1);
-
-            this.ctx.fillText('Next round in '+timeLeft+'s', this.canvasWidth/2, this.canvasHeight/2);
-        }
-
-        //if(this.lag) {
-        //    this.ctx.fillStyle = "black";
-        //    this.ctx.font="20px Verdana";
-        //    this.ctx.fillText('Network Lag', 250, 250);
-        //}
-
+      //if(this.lag) {
+      //    ctx.fillStyle = "black";
+      //    ctx.font="20px Verdana";
+      //    ctx.fillText('Network Lag', 250, 250);
+      //}
     };
 
     return React.createClass({
         displayName: 'GraphicsDisplay',
+        mixins: [React.addons.PureRenderMixin],
         propTypes: {
             width: React.PropTypes.number.isRequired,
             height: React.PropTypes.number.isRequired,
