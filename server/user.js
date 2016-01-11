@@ -378,7 +378,7 @@ exports.resetPassword = function(req, res, next) {
                 if (err)
                     return next(new Error('Unable to delete user sessions for userId: ' + user.id + ': \n' + err));
 
-                database.createSession(user.id, ipAddress, userAgent, false, function(err, sessionId) {
+                database.createSession(user.id, ipAddress, userAgent, false, null, function(err, sessionId) {
                     if (err)
                         return next(new Error('Unable to create session for userid ' + userId +  ':\n' + err));
 
