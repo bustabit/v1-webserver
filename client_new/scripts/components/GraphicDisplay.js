@@ -55,11 +55,40 @@ define([
     };
 
     Graph.prototype.configPlotSettings = function(config) {
-        this.canvasWidth = this.canvas.width;
-        this.canvasHeight = this.canvas.height;
+        // From: http://www.html5rocks.com/en/tutorials/canvas/hidpi/
+        var devicePixelRatio = window.devicePixelRatio || 1;
+        var backingStoreRatio =
+            this.ctx.webkitBackingStorePixelRatio ||
+            this.ctx.mozBackingStorePixelRatio ||
+            this.ctx.msBackingStorePixelRatio ||
+            this.ctx.oBackingStorePixelRatio ||
+            this.ctx.backingStorePixelRatio || 1;
+
+        // Only update these settings if they really changed to avoid rendering hiccups.
+        if (this.configWidth !== config.width ||
+            this.configHeight !== config.height ||
+            this.devicePixelRatio !== devicePixelRatio ||
+            this.backingStoreRatio !== backingStoreRatio) {
+            if (devicePixelRatio === backingStoreRatio) {
+                this.canvasWidth = this.canvas.width = config.width;
+                this.canvasHeight = this.canvas.height = config.height;
+            } else {
+                this.canvasWidth = this.canvas.width = config.width*this.ratio;
+                this.canvasHeight = this.canvas.height = config.height*this.ratio;
+            }
+            this.canvas.style.width = config.width + 'px';
+            this.canvas.style.height = config.height + 'px';
+        }
+
+        this.configWidth = config.width;
+        this.configHeight = config.height;
+        this.devicePixelRatio = devicePixelRatio;
+        this.backingStoreRatio = backingStoreRatio;
+        this.ratio = devicePixelRatio / backingStoreRatio;
+
         this.themeWhite = (config.currentTheme === 'white');
-        this.plotWidth = this.canvasWidth - 30;
-        this.plotHeight = this.canvasHeight - 20; //280
+        this.plotWidth = this.canvasWidth - 30*this.ratio;
+        this.plotHeight = this.canvasHeight - 20*this.ratio; //280
         this.xStart = this.canvasWidth - this.plotWidth;
         this.yStart = this.canvasHeight - this.plotHeight;
         this.XAxisPlotMinValue = 10000;    //10 Seconds
@@ -98,7 +127,7 @@ define([
     };
 
     Graph.prototype.clean = function() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
     };
 
     Graph.prototype.drawGraph = function() {
@@ -108,16 +137,16 @@ define([
 
         //Playing and not cashed out
         if(StateLib.currentlyPlaying(Engine)) {
-            this.ctx.lineWidth = 6;
+            this.ctx.lineWidth = 6*this.ratio;
             this.ctx.strokeStyle = '#7cba00';
 
         //Cashing out
         } else if(Engine.cashingOut) {
-            this.ctx.lineWidth=6;
+            this.ctx.lineWidth = 6*this.ratio;
             //this.ctx.strokeStyle = "Grey";
 
         } else {
-            this.ctx.lineWidth=4;
+            this.ctx.lineWidth = 4*this.ratio;
         }
 
         this.ctx.beginPath();
@@ -140,7 +169,7 @@ define([
              this.ctx.stroke();
 
              this.ctx.beginPath();
-             this.ctx.lineWidth=3;
+             this.ctx.lineWidth = 3*this.ratio;
              this.ctx.moveTo(x + this.xStart, y);
              this.ctx.strokeStyle = tempStroke;
              greenSetted = true;
@@ -176,9 +205,9 @@ define([
         this.YAxisPlotMaxValue = this.YAxisPlotMinValue;
         this.payoutSeparation = stepValues(!this.currentGamePayout ? 1 : this.currentGamePayout);
 
-        this.ctx.lineWidth=1;
+        this.ctx.lineWidth = 1*this.ratio;
         this.ctx.strokeStyle = (this.themeWhite? "Black" : "#b0b3c1");
-        this.ctx.font="10px Verdana";
+        this.ctx.font= 10*this.ratio + "px Verdana";
         this.ctx.fillStyle = (this.themeWhite? 'black' : "#b0b3c1");
         this.ctx.textAlign="center";
 
@@ -186,11 +215,11 @@ define([
         var heightIncrement =  this.plotHeight/(this.YAxisPlotValue);
         for(var payout = this.payoutSeparation, i = 0; payout < this.YAxisPlotValue; payout+= this.payoutSeparation, i++) {
             var y = this.plotHeight - (payout*heightIncrement);
-            this.ctx.fillText((payout+1)+'x', 10, y);
+            this.ctx.fillText((payout+1)+'x', 10*this.ratio, y);
 
             this.ctx.beginPath();
             this.ctx.moveTo(this.xStart, y);
-            this.ctx.lineTo(this.xStart+5, y);
+            this.ctx.lineTo(this.xStart + 5*this.ratio, y);
             this.ctx.stroke();
 
             if(i > 100) { console.log("For 3 too long"); break; }
@@ -205,13 +234,13 @@ define([
             var seconds = miliseconds/1000;
             var textWidth = this.ctx.measureText(seconds).width;
             var x = (counter*this.XAxisValuesSeparation) + this.xStart;
-            this.ctx.fillText(seconds, x - textWidth/2, this.plotHeight + 11);
+            this.ctx.fillText(seconds, x - textWidth/2, this.plotHeight + 11*this.ratio);
 
             if(i > 100) { console.log("For 4 too long"); break; }
         }
 
         //Draw background Axis
-        this.ctx.lineWidth=1;
+        this.ctx.lineWidth = 1*this.ratio;
         this.ctx.beginPath();
         this.ctx.moveTo(this.xStart, 0);
         this.ctx.lineTo(this.xStart, this.canvasHeight - this.yStart);
@@ -296,10 +325,7 @@ define([
         },
 
         render: function() {
-            return D.canvas({
-                width: this.props.width,
-                height: this.props.height
-            });
+            return D.canvas();
         }
     });
 });
