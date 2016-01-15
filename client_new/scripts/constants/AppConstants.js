@@ -4,6 +4,10 @@ define(['lib/key-mirror'], function(KeyMirror){
 
         ActionTypes: KeyMirror({
 
+            //Admin Actions
+            ADMIN_PAUSE_GAME: null,
+            ADMIN_RESUME_GAME: null,
+
             //Game Actions
             PLACE_BET: null,
             PLACE_BET_SUCCESS: null,
