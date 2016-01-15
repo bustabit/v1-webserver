@@ -392,43 +392,44 @@ define([
                     }
                 }
 
-                self.ws.emit('join', { ott: ott },
-                    function(err, resp) {
-                        if (err) {
-                            console.error('Error when joining the game...', err);
-                            return;
-                        }
-
-                        self.balanceSatoshis = resp.balance_satoshis;
-                        self.chat = resp.chat;
-
-                        /** If username is a falsey value the user is not logged in */
-                        self.username = resp.username;
-
-                        /** Variable to check if we are connected to the server */
-                        self.isConnected = true;
-                        self.gameState = resp.state;
-                        self.playerInfo = resp.player_info;
-
-                        // set current game properties
-                        self.gameId = resp.game_id;
-                        self.maxWin = resp.max_win;
-                        self.lastHash = resp.last_hash;
-                        self.created = resp.created;
-                        self.startTime = new Date(Date.now() - resp.elapsed);
-                        self.joined = resp.joined;
-                        self.tableHistory = resp.table_history;
-
-                        if (self.gameState === 'IN_PROGRESS')
-                            self.lastGameTick = Date.now();
-
-                        if (self.gameState === 'IN_PROGRESS' || self.gameState === 'ENDED')
-                            self.calcBonuses();
-
-
-                        self.trigger('connected');
+                self.ws.emit('join', {
+                    ott: ott,
+                    api_version: AppConstants.Engine.GAME_API_VERSION
+                }, function(err, resp) {
+                    if (err) {
+                        console.error('Error when joining the game...', err);
+                        return;
                     }
-                );
+
+                    self.balanceSatoshis = resp.balance_satoshis;
+                    self.chat = resp.chat;
+
+                    /** If username is a falsey value the user is not logged in */
+                    self.username = resp.username;
+
+                    /** Variable to check if we are connected to the server */
+                    self.isConnected = true;
+                    self.gameState = resp.state;
+                    self.playerInfo = resp.player_info;
+
+                    // set current game properties
+                    self.gameId = resp.game_id;
+                    self.maxWin = resp.max_win;
+                    self.lastHash = resp.last_hash;
+                    self.created = resp.created;
+                    self.startTime = new Date(Date.now() - resp.elapsed);
+                    self.joined = resp.joined;
+                    self.tableHistory = resp.table_history;
+
+                    if (self.gameState === 'IN_PROGRESS')
+                        self.lastGameTick = Date.now();
+
+                    if (self.gameState === 'IN_PROGRESS' || self.gameState === 'ENDED')
+                        self.calcBonuses();
+
+
+                    self.trigger('connected');
+                });
             });
         });
 

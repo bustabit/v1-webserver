@@ -412,49 +412,50 @@ define([
                     return;
                 }
 
-                //If there is a Dev ott use it
-                self.ws.emit('join', { ott: window.DEV_OTT? window.DEV_OTT : ott },
-                    function(err, resp) {
-                        if (err) {
-                            console.error('Error when joining the game...', err);
-                            return;
-                        }
-
-                        self.balanceSatoshis = resp.balance_satoshis;
-
-                        /** If username is a falsey value the user is not logged in */
-                        self.username = resp.username;
-
-                        /** Variable to check if we are connected to the server */
-                        self.connectionState = 'JOINED';
-                        self.gameState = resp.state;
-                        self.playerInfo = resp.player_info;
-
-                        // set current game properties
-                        self.gameId = resp.game_id;
-                        self.maxWin = resp.max_win;
-                        self.lastHash = resp.last_hash;
-                        self.created = resp.created;
-                        self.startTime = new Date(Date.now() - resp.elapsed);
-                        self.joined = resp.joined;
-                        self.tableHistory = resp.table_history;
-
-                        if (self.gameState === 'IN_PROGRESS')
-                            self.lastGameTick = Date.now();
-
-                    	//Attach username to each user for sorting proposes 
-                    	for(var user in self.playerInfo) {
-                    		self.playerInfo[user].username = user;
-                    	}
-
-                    	//Calculate the bonuses of the current game if necessary
-                        if (self.gameState === 'IN_PROGRESS' || self.gameState === 'ENDED'){
-                        	self.calcBonuses();
-                        }
-                            
-                        self.trigger('joined');
+                self.ws.emit('join', {
+                    // If there is a Dev ott use it
+                    ott: window.DEV_OTT? window.DEV_OTT : ott,
+                    api_version: AppConstants.Engine.GAME_API_VERSION
+                }, function(err, resp) {
+                    if (err) {
+                        console.error('Error when joining the game...', err);
+                        return;
                     }
-                );
+
+                    self.balanceSatoshis = resp.balance_satoshis;
+
+                    /** If username is a falsey value the user is not logged in */
+                    self.username = resp.username;
+
+                    /** Variable to check if we are connected to the server */
+                    self.connectionState = 'JOINED';
+                    self.gameState = resp.state;
+                    self.playerInfo = resp.player_info;
+
+                    // set current game properties
+                    self.gameId = resp.game_id;
+                    self.maxWin = resp.max_win;
+                    self.lastHash = resp.last_hash;
+                    self.created = resp.created;
+                    self.startTime = new Date(Date.now() - resp.elapsed);
+                    self.joined = resp.joined;
+                    self.tableHistory = resp.table_history;
+
+                    if (self.gameState === 'IN_PROGRESS')
+                        self.lastGameTick = Date.now();
+
+                    //Attach username to each user for sorting proposes
+                    for(var user in self.playerInfo) {
+                    	self.playerInfo[user].username = user;
+                    }
+
+                    //Calculate the bonuses of the current game if necessary
+                    if (self.gameState === 'IN_PROGRESS' || self.gameState === 'ENDED'){
+                    	self.calcBonuses();
+                    }
+
+                    self.trigger('joined');
+                });
             });
         });
 
