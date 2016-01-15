@@ -160,8 +160,32 @@ define([
 
         /**
          * Event called each 150ms telling the client the game is still alive
-         * @param {object} data - JSON payload
-         * @param {number} data.elapsed - Time elapsed since game_started
+         * @param {array} data - JSON payload
+         * @param {number} data[0] - Time elapsed since game_started
+         * @param {object} data[1] - Cashouts since the last tick
+         */
+        self.ws.on('tick', function(elapsed, cashouts) {
+            /** Time of the last tick received */
+            self.lastGameTick = Date.now();
+            if(self.lag === true){
+                self.lag = false;
+                self.trigger('lag_change');
+            }
+
+            if(self.tickTimer)
+                clearTimeout(self.tickTimer);
+
+            self.tickTimer = setTimeout(self.checkForLag.bind(self), AppConstants.Engine.STOP_PREDICTING_LAPSE);
+
+            _.forEach(cashouts, function(stoppedAt, username) {
+                self.onCashedOut({username: username, stopped_at: stoppedAt});
+            });
+        });
+
+        // TODO: Remove once the gameserver has been updated to API_VERSION 1.
+        /**
+         * Event called each 150ms telling the client the game is still alive
+         * @param {number} data - elapsed time
          */
         self.ws.on('game_tick', function(data) {
             /** Time of the last tick received */
@@ -192,6 +216,7 @@ define([
          * Event called at game crash
          * @param {object} data - JSON payload
          * @param {number} data.elapsed - Total game elapsed time
+         * @param {object} data.cashouts - Player cashouts just before game crash
          * @param {number} data.game_crash - Crash payout quantity in percent eg. 200 = 2x. Use this to calculate payout!
          * @param {object} data.bonuses - List of bonuses of each user, in satoshis
          * @param {string} data.hash - Revealed hash of the game
@@ -200,6 +225,10 @@ define([
 
             if(self.tickTimer)
                 clearTimeout(self.tickTimer);
+
+            _.forEach(data.cashouts, function(stoppedAt, username) {
+              self.onCashedOut({username: username, stopped_at: stoppedAt});
+            });
 
             //If the game crashed at zero x remove bonuses projections by setting them to zero.
             if(data.game_crash == 0)
@@ -284,30 +313,8 @@ define([
             self.trigger('player_bet', data);
         });
 
-        /**
-         * Event called every time the server cash out a user
-         * if we call cash out the server is going to call this event
-         * with our name.
-         * @param {object} resp - JSON payload
-         * @param {string} resp.username - The player username
-         * @param {number} resp.stopped_at -The percentage at which the user cashed out
-         */
-        self.ws.on('cashed_out', function(resp) {
-            //Add the cashout percentage of each user at cash out
-            if (!self.playerInfo[resp.username])
-                return console.warn('Username not found in playerInfo at cashed_out: ', resp.username);
-
-            self.playerInfo[resp.username].stopped_at = resp.stopped_at;
-
-            if (self.username === resp.username) {
-                self.cashingOut = false;
-                self.balanceSatoshis += self.playerInfo[resp.username].bet * resp.stopped_at / 100;
-            }
-
-            self.calcBonuses();
-
-            self.trigger('cashed_out', resp);
-        });
+        // TODO: Remove once the gameserver has been updated to API_VERSION 1.
+        self.ws.on('cashed_out', self.onCashedOut.bind(self));
 
         /**
          * Event called every time we receive a chat message
@@ -400,6 +407,31 @@ define([
             self.trigger('disconnected');
         });
     }
+
+    /**
+     * Event called every time the server cashes out a user. If we call cash
+     * out, the server is going to call this event with our name.
+     * @param {object} resp - JSON payload
+     * @param {string} resp.username - The player username
+     * @param {number} resp.stopped_at -The percentage at which the user cashed out
+     */
+    Engine.prototype.onCashedOut = function(resp) {
+        //Add the cashout percentage of each user at cash out
+        var self = this;
+        if (!self.playerInfo[resp.username])
+            return console.warn('Username not found in playerInfo at cashed_out: ', resp.username);
+
+        self.playerInfo[resp.username].stopped_at = resp.stopped_at;
+
+        if (self.username === resp.username) {
+            self.cashingOut = false;
+            self.balanceSatoshis += self.playerInfo[resp.username].bet * resp.stopped_at / 100;
+        }
+
+        self.calcBonuses();
+
+        self.trigger('cashed_out', resp);
+    };
 
     /**
      * STOP_PREDICTING_LAPSE milliseconds after game_tick we put the game in lag state
