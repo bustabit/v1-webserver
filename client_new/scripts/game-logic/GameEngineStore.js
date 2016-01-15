@@ -341,6 +341,39 @@ define([
         });
 
         /**
+         * Event called every time one or more users place bets. We could be one
+         * of them, so we check for that. The payload includes usernames and
+         * index positions for the joined array. Because indices depend on each
+         * other, the payload needs to be processed in order.
+         * @param {array} data -
+         * @param {string} data[2n+0] - The n-th player's index.
+         * @param {number} data[2n+1] - The n-th player's username.
+         */
+        self.ws.on('bets', function(data) {
+          // data.length is even
+          console.assert((data.length >> 1) << 1 === data.length);
+          self.trigger('bets', data);
+
+          for (var i = 0; i < data.length;) {
+            var index    = data[i++];
+            var username = data[i++];
+
+            if (self.username === username) {
+                self.placingBet = false;
+                self.nextBetAmount = null;
+                self.nextAutoCashout = null;
+            }
+
+            self.joined.splice(index, 0, username);
+            self.trigger('player_bet', {
+              username: username,
+              index : index
+            });
+          }
+        });
+
+        // TODO: Remove once the gameserver has been updated to API_VERSION 1.
+        /**
          * Event called every time a user places a bet
          * the user that placed the bet could be me so we check for that
          * @param {object} resp - JSON payload
