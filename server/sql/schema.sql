@@ -52,7 +52,7 @@ CREATE TABLE failedlogins (
   created timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE INDEX ON failedlogins_user_id_idx ON failedlogins(user_id);
+CREATE INDEX failedlogins_user_id_idx ON failedlogins(user_id);
 
 -- CREATE INDEX failedlogins_fingerprint_idx ON failedlogins USING btree (fingerprint);
 
