@@ -49,20 +49,28 @@ define([
         render: function() {
             var self = this;
 
-            var rowLenght = this.props.isMobileOrSmall? 9 : 11;
+            var rowLength = this.props.isMobileOrSmall? 9 : 11;
 
-            var chans = ['arabic', 'armenian', 'basque', 'bengali', 'bosnian', 'bulgarian', 'chinese',
-                'croatian', 'czech', 'danish', 'dutch', 'english', 'estonian', 'farsi', 'finnish', 'french', 'german',
-                'greek', 'hebrew', 'hindi', 'hungarian', 'indonesian', 'italian', 'latvian', 'lithuanian', 'maltese', 'norwegian',
-                'polish', 'portuguese', 'romanian', 'russian', 'serbian', 'slovak', 'slovenian', 'spanish', 'swedish', 'thai',
-                'turkish', 'ukrainian', 'vietnamese'];
+            var chans = [
+                'arabic', 'armenian', 'basque', 'bengali', 'bosnian', 'bulgarian',
+                'chinese', 'croatian', 'czech', 'danish', 'dutch', 'english',
+                'estonian', 'farsi', 'finnish', 'french', 'german', 'greek',
+                'hebrew', 'hindi', 'hungarian', 'indonesian', 'italian', 'korean',
+                'latvian', 'lithuanian', 'maltese', 'norwegian', 'polish',
+                'portuguese', 'romanian', 'russian', 'serbian', 'slovak',
+                'slovenian', 'spanish', 'swedish', 'thai', 'turkish',
+                'ukrainian', 'vietnamese'
+            ];
+
+            // Always add spam channel first.
+            chans.unshift('spam');
 
             if(this.props.moderator)
                 chans.push('moderators');
 
             var chansRows = [];
-            for(var i = 0, e = 0, length = chans.length; i < length; i += rowLenght, e++ )
-                chansRows[e] = chans.slice(i, i+rowLenght);
+            for(var i = 0, e = 0, length = chans.length; i < length; i += rowLength, e++ )
+                chansRows[e] = chans.slice(i, i+rowLength);
 
             //Give the arrays of names of certain size create an array of divs(flags rows) which each one contains an array of images
             var flagRows = [];
