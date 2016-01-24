@@ -576,7 +576,14 @@ define([
                 bonusPool -= toAllocAll;
             }
         );
+    };
 
+    Engine.prototype.pauseGame = function() {
+      this.ws.emit('admin_pause_game');
+    };
+
+    Engine.prototype.resumeGame = function() {
+      this.ws.emit('admin_resume_game');
     };
 
     /**
@@ -625,6 +632,13 @@ define([
         var action = payload.action;
 
         switch(action.actionType) {
+            case AppConstants.ActionTypes.ADMIN_PAUSE_GAME:
+                EngineSingleton.pauseGame();
+                break;
+
+            case AppConstants.ActionTypes.ADMIN_RESUME_GAME:
+                EngineSingleton.resumeGame();
+                break;
 
             case AppConstants.ActionTypes.PLACE_BET:
                 EngineSingleton.bet(action.bet, action.cashOut);

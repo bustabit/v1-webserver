@@ -2,6 +2,7 @@ define([
     'react',
     'game-logic/clib',
     'autolinker',
+    'actions/AdminActions',
     'actions/ChatActions',
     'stores/GameSettingsStore',
     'stores/ChatStore',
@@ -10,6 +11,7 @@ define([
     React,
     Clib,
     Autolinker,
+    AdminActions,
     ChatActions,
     GameSettingsStore,
     ChatStore,
@@ -301,6 +303,14 @@ define([
 
                 case 'ignored':
                     ChatActions.listMutedUsers(this.state.ignoredClientList);
+                    return true;
+
+                case 'pause':
+                    AdminActions.pause();
+                    return true;
+
+                case 'resume':
+                    AdminActions.resume();
                     return true;
 
                 default:
